@@ -84,3 +84,5 @@ create table alerta(
     codalerta   int,
     descripcion text,
 );
+
+\c postgres
