@@ -1,7 +1,7 @@
-drop database if exists BaseDatos;
-create database BaseDatos;
+drop database if exists basedatos;
+create database basedatos;
 
-\c BaseDatos
+\c basedatos
 
 create table cliente(
     nrocliente  int,
@@ -18,7 +18,7 @@ create table tarjeta(
     validahasta char(16),
     codseguridad char(4),
     limitecompra decimal(8,2),
-    estado  char(10),
+    estado  char(10)
 );
 
 create table comercio(
@@ -26,7 +26,7 @@ create table comercio(
     nombre      text,
     domicilio   text,
     codigopostal char(8),
-    telefono    char(12),
+    telefono    char(12)
 );
 
 create table compra(
@@ -35,7 +35,7 @@ create table compra(
     nrocomercio int,
     fecha   timestamp,
     monto   decimal(7,2),
-    pagado  boolean,
+    pagado  boolean
 );
 
 create table rechazo(
@@ -44,7 +44,7 @@ create table rechazo(
     nrocomercio int,
     fecha   timestamp,
     monto   decimal(7,2),
-    motivo  text,
+    motivo  text
 );
 
 create table cierre(
@@ -53,7 +53,7 @@ create table cierre(
     terminacion int,
     fechainicio date,
     fechacierre date,
-    fechavto    date,
+    fechavto    date
 );
 
 create table cabecera(
@@ -65,7 +65,7 @@ create table cabecera(
     desde   date,
     hasta   date,
     vence   date,
-    total   decimal(8,2),
+    total   decimal(8,2)
 );
 
 create table detalle(
@@ -73,7 +73,7 @@ create table detalle(
     nrolinea    int,
     fecha   date,
     nombrecomercio text,
-    monto   decimal(7,2),
+    monto   decimal(7,2)
 );
 
 create table alerta(
@@ -82,14 +82,14 @@ create table alerta(
     fecha   timestamp,
     nrorechazo  int,
     codalerta   int,
-    descripcion text,
+    descripcion text
 );
 
 create table consumo(
     nrotarjeta  char(16),
     codseguridad char(4),
     nrocomercio int,
-    monto   decimal(7,2),
+    monto   decimal(7,2)
 );
 
 alter table cliente  add constraint cliente_pk  primary key (nrocliente);
@@ -118,4 +118,8 @@ alter table alerta   add constraint alerta_nrorechazo_fk   foreign key (nrorecha
 alter table consumo  add constraint consumo_nrotarjeta_fk  foreign key (nrotarjeta)  references tarjeta(nrotarjeta);
 alter table consumo  add constraint consumo_nrocomercio_fk foreign key (nrocomercio) references comercio(nrocomercio);
 
+
 \c postgres
+
+
+
