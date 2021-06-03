@@ -158,26 +158,26 @@ insert into comercio values(10, 'McDonalds', 'Hipolito Yrigoyen 267', 'B1610LPN'
 
 --clientes 
 
-insert into cliente values(1,'Daniela Anabel','Oviedo','San Martin 3814','541130569988')
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
--- insert into cliente values()
+insert into cliente values(1,'Daniela Anabel','Oviedo','San Martin 3814','541130569988');
+insert into cliente values(2,'Fernando','Ferreyra','Benito Lynch 2206','541156441305');
+insert into cliente values(3, 'Elias','Goñez', 'Valparaiso 2050','541128898392');
+insert into cliente values(4,'Romina','Segretin','Uruguay 790','541154085062');
+insert into cliente values(5,'Fabian','García Gómez','Av. Alem 368','541140495127');
+insert into cliente values(6,'Matheo Samuel','García','Av. Callao 1311','541146155914');
+insert into cliente values(7,'Sabrina Rosalia','Ramirez','Av. Sáenz 945','541130360237');
+insert into cliente values(8,'Sara Valeria','Hernández','Av. Cabildo 2523','541128447247');
+insert into cliente values(9,'Alicia Grisel','Gómez','Cura Brochero 1053','541161206314');
+insert into cliente values(10,'Joana Elizabeth','Villarreal','Palpa 1020','541164294818');
+insert into cliente values(11,'Ignacio Ariel','Perez','Paso de los patos 2508','541189768847');
+insert into cliente values(12,'Lucia Daniela','Benitez','Av. Rivadavia 2199','541124361554');
+insert into cliente values(13,'Maximiliano Ezequiel','Fernandez','Obrien 2460','541167353600');
+insert into cliente values(14,'Cristian Elias','Oviedo','Yatasto 1749','541126858087');
+insert into cliente values(15,'Carolina Noelia','Diaz','Falucho 853','541151955038');
+insert into cliente values(16,'Agustina','Lopez','Ricardo Rojas 1183','541141612153');
+insert into cliente values(17,'Luciano Damian','Mansilla','Av. Eva Duarte de Perón 904','541136471202');
+insert into cliente values(18,'Hernan Daniel','Rondelli','Nazca 1065','541127146757');
+insert into cliente values(19,'Leandro David','Gimenez','Juan Maria Gutiérrez 1150','541125405212');
+insert into cliente values(20,'Rodrigo Ezquiel','Palacios','Pablo Areguati 299','541124511771');
 
 \c postgres
 
