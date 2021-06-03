@@ -143,6 +143,13 @@ insert into tarjeta values('343263611209214', 19, '201909', '202408', '901', 200
 insert into tarjeta values('377829618815820', 20, '201804', '202303', '320', 90000.00, 'suspendida');
 
 
+--comercios
+
+insert into comercio values(1,'Coto', 'Belgrano 960', 'B1619JHU','034844458867');
+insert into comercio values(2,'Sodimac','Constituyentes 1370','B1619HUU','112658423658');
+insert into comercio values(3,'Buen Gusto', 'Av. Libertador 3072', 'C1245YTD');
+insert into comercio values(4,'Cafeteria Victor', 'Juan Gutierrez 1150', 'B1613GAE');
+
 \c postgres
 
 
