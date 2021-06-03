@@ -122,25 +122,25 @@ alter table consumo  add constraint consumo_nrocomercio_fk foreign key (nrocomer
 insert into tarjeta values('4286283215095190', 1, '201709', '202208', '114', 45000.00, 'vigente');
 insert into tarjeta values('4532449515464319', 2, '202001', '202412', '881', 30000.00, 'vigente');
 insert into tarjeta values('4716905901199213', 3, '202108', '202607', '311', 150000.00, 'vigente');
-insert into tarjeta values('4539760286740064', 4, '202204', '202703', '553', 15000.00, 'vigente');
+insert into tarjeta values('4539760286740064', 4, '202204', '202703', '553', 35000.00, 'vigente');
 insert into tarjeta values('4916197097056062', 5, '202010', '202509', '103', 45000.00, 'anulada');
 insert into tarjeta values('4532157860627139', 6, '202004', '202503', '802', 42000.00, 'anulada');
 insert into tarjeta values('4449942525596585', 7, '202010', '202509', '552', 120000.00, 'vigente');
-insert into tarjeta values('4929028998516745', 8, '201610', '202109', '412', 11000.00, 'suspendida');
-insert into tarjeta values('4916558526474988', 9, '201604', '202103', '633', 10000.00, 'vencida');
+insert into tarjeta values('4929028998516745', 8, '201610', '202109', '412', 110000.00, 'suspendida');
+insert into tarjeta values('4916558526474988', 9, '201604', '202103', '633', 65000.00, 'vencida');
 insert into tarjeta values('4456844734152285', 10, '201707', '202206', '853', 35000.00, 'anulada');
 insert into tarjeta values('5305073210930499', 11, '201707', '202206', '271', 140000.00, 'vigente');
-insert into tarjeta values('5115874922952014', 12, '202008', '202507', '647', 15000.00, 'suspendida');
-insert into tarjeta values('5433516727758253', 13, '201802', '202301', '345', 450000.00, 'vigente');
-insert into tarjeta values('5200557813577356', 14, '201707', '202206', '112', 12000.00, 'anulada');
-insert into tarjeta values('5425807573408337', 15, '201712', '202211', '879', 18000.00, 'vigente');
-insert into tarjeta values('5255982663365344', 16, '201906', '202405', '768', 10000.00, 'suspendida');
-insert into tarjeta values('5535292533476491', 17, '201805', '202304', '876', 100000.00, 'vigente');
-insert into tarjeta values('5425758312840399', 18, '202005', '202504', '881', 15000.00, 'vigente');
+insert into tarjeta values('5115874922952014', 12, '202008', '202507', '647', 70000.00, 'suspendida');
+insert into tarjeta values('5433516727758253', 13, '201802', '202301', '345', 150000.00, 'vigente');
+insert into tarjeta values('5200557813577356', 14, '201707', '202206', '112', 120000.00, 'anulada');
+insert into tarjeta values('5425807573408337', 15, '201712', '202211', '879', 43000.00, 'vigente');
+insert into tarjeta values('5255982663365344', 16, '201906', '202405', '768', 120000.00, 'suspendida');
+insert into tarjeta values('5535292533476491', 17, '201805', '202304', '876', 170000.00, 'vigente');
+insert into tarjeta values('5425758312840399', 18, '202005', '202504', '881', 80000.00, 'vigente');
 insert into tarjeta values('340869936801114', 17, '201907', '202406', '675', 90000.00, 'vigente');
-insert into tarjeta values('342888106007110', 18, '202103', '202602', '127', 12000.00, 'vigente');
-insert into tarjeta values('343263611209214', 19, '201909', '202408', '901', 26000.00, 'anulada');
-insert into tarjeta values('377829618815820', 20, '201804', '202303', '320', 15000.00, 'suspendida');
+insert into tarjeta values('342888106007110', 18, '202103', '202602', '127', 120000.00, 'vigente');
+insert into tarjeta values('343263611209214', 19, '201909', '202408', '901', 200000.00, 'anulada');
+insert into tarjeta values('377829618815820', 20, '201804', '202303', '320', 90000.00, 'suspendida');
 
 
 \c postgres
