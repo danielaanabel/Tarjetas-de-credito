@@ -137,10 +137,10 @@ insert into tarjeta values('5425807573408337', 15, '201712', '202211', '879', 43
 insert into tarjeta values('5255982663365344', 16, '201906', '202405', '768', 120000.00, 'suspendida');
 insert into tarjeta values('5535292533476491', 17, '201805', '202304', '876', 170000.00, 'vigente');
 insert into tarjeta values('5425758312840399', 18, '202005', '202504', '881', 80000.00, 'vigente');
-insert into tarjeta values('340869936801114', 17, '201907', '202406', '675', 90000.00, 'vigente');
-insert into tarjeta values('342888106007110', 18, '202103', '202602', '127', 120000.00, 'vigente');
-insert into tarjeta values('343263611209214', 19, '201909', '202408', '901', 200000.00, 'anulada');
-insert into tarjeta values('377829618815820', 20, '201804', '202303', '320', 90000.00, 'suspendida');
+insert into tarjeta values('3408699368011145', 17, '201907', '202406', '675', 90000.00, 'vigente'); --de aca para abajo corregi el nro tarjeta
+insert into tarjeta values('3428881060071108', 18, '202103', '202602', '127', 120000.00, 'vigente');
+insert into tarjeta values('3432636112092149', 19, '201909', '202408', '901', 200000.00, 'anulada');
+insert into tarjeta values('3778296188158201', 20, '201804', '202303', '320', 90000.00, 'suspendida');
 
 
 --comercios
