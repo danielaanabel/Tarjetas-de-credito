@@ -150,6 +150,11 @@ insert into comercio values(2, 'Sodimac','Constituyentes 1370','B1619HUU','11265
 insert into comercio values(3, 'Buen Gusto', 'Av. Libertador 3072', 'C1245YTD','541126598965');
 insert into comercio values(4, 'Cafeteria Victor', 'Juan Gutierrez 1150', 'B1613GAE', '541178451245');
 insert into comercio values(5, 'Libreria Alondra', 'Mateo Churich 130', 'B1619JGB', '541125584518');
+insert into comercio values(6, 'Carrefour', 'Los Andes 458', 'B1608OKL', '541126154879');
+insert into comercio values(7, 'El Boulevard', 'General Peron 377', 'B1610HGU', '541128964712');
+insert into comercio values(8, 'Rapanui', 'Juan Domingo Peron 1974', 'C1456NSM', '541126597841');
+insert into comercio values(9, 'Ñoquis Artesanales', 'Balcarce 50', 'C1064KCF', '541143443600');
+insert into comercio values(10, 'McDonalds', 'Hipolito Yrigoyen 267', 'B1610LPN','541126455468');
 
 \c postgres
 
