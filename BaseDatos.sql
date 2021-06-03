@@ -145,10 +145,11 @@ insert into tarjeta values('377829618815820', 20, '201804', '202303', '320', 900
 
 --comercios
 
-insert into comercio values(1,'Coto', 'Belgrano 960', 'B1619JHU','034844458867');
-insert into comercio values(2,'Sodimac','Constituyentes 1370','B1619HUU','112658423658');
-insert into comercio values(3,'Buen Gusto', 'Av. Libertador 3072', 'C1245YTD');
-insert into comercio values(4,'Cafeteria Victor', 'Juan Gutierrez 1150', 'B1613GAE');
+insert into comercio values(1, 'Coto', 'Belgrano 960', 'B1619JHU','034844458867');
+insert into comercio values(2, 'Sodimac','Constituyentes 1370','B1619HUU','112658423658');
+insert into comercio values(3, 'Buen Gusto', 'Av. Libertador 3072', 'C1245YTD','541126598965');
+insert into comercio values(4, 'Cafeteria Victor', 'Juan Gutierrez 1150', 'B1613GAE', '541178451245');
+insert into comercio values(5, 'Libreria Alondra', 'Mateo Churich 130', 'B1619JGB', '541125584518');
 
 \c postgres
 
