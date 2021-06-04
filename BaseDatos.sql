@@ -154,6 +154,16 @@ insert into comercio values(7, 'El Boulevard', 'General Peron 377', 'B1610HGU', 
 insert into comercio values(8, 'Rapanui', 'Juan Domingo Peron 1974', 'C1456NSM', '541126597841');
 insert into comercio values(9, 'Ñoquis Artesanales', 'Balcarce 50', 'C1064KCF', '541143443600');
 insert into comercio values(10, 'McDonalds', 'Hipolito Yrigoyen 267', 'B1610LPN','541126455468');
+insert into comercio values(11, 'Starbucks', '25 de Mayo 2254', 'B1609KGJ','541148897234');
+insert into comercio values(12, 'Parrilla El Chorizon', 'Blandengues 483', 'B1611HGE', '541136223879');
+insert into comercio values(13, 'Optica Casimiro', 'Juan B Justo 2020', 'C1032BND', '541121145469');
+insert into comercio values(14, 'Ferreteria El Cosito', 'Peru 1654', 'B1663ERF', '541136458159');
+insert into comercio values(15, 'Farmacia Favaloro', 'Remedios de Escalada 392', 'B1619HJU', '541125698741');
+insert into comercio values(16, 'Servicio Tecnico LG', 'Marie Curie 506', 'B1600KIB', '541125896734');
+insert into comercio values(17, 'Loteria de la provincia', 'Cayetano Bourdet 2390', 'B1619PER', '541123698564');
+insert into comercio values(18, 'Supermercado Puma', 'Cordoba 212', 'B1610GBF', '541128955864');
+insert into comercio values(19, 'Aberturas Pepe', '9 de Julio 3004', 'C1040JUG', '541126897468');
+insert into comercio values(20, 'Cinemark', 'Constituyentes 2078', 'B1620MVU', '541128969864');
 
 
 --clientes 
