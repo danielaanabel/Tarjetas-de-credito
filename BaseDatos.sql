@@ -167,7 +167,6 @@ insert into comercio values(20, 'Cinemark', 'Constituyentes 2078', 'B1620MVU', '
 
 
 --clientes 
-
 insert into cliente values(1,'Daniela Anabel','Oviedo','San Martin 3814','541130569988');
 insert into cliente values(2,'Fernando','Ferreyra','Benito Lynch 2206','541156441305');
 insert into cliente values(3, 'Elias','Goñez', 'Valparaiso 2050','541128898392');
@@ -189,7 +188,14 @@ insert into cliente values(18,'Hernan Daniel','Rondelli','Nazca 1065','541127146
 insert into cliente values(19,'Leandro David','Gimenez','Juan Maria Gutiérrez 1150','541125405212');
 insert into cliente values(20,'Rodrigo Ezquiel','Palacios','Pablo Areguati 299','541124511771');
 
+--consumos
+insert into consumo values('4716905901199213', '311', 10, 750.00);
+insert into consumo values('5305073210930499', '271', 6, 1500.00);
+insert into consumo values('5535292533476491', '876', 1, 3000.00);
+insert into consumo values('4916197097056062', '103', 11, 500.00);
+insert into consumo values('5425758312840399', '881', 15, 1000.00);
+insert into consumo values('4449942525596585', '552', 12, 2000.00);
+insert into consumo values('4286283215095190', '114', 14, 550.00);
+
+
 \c postgres
-
-
-
