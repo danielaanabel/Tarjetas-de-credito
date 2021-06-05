@@ -197,5 +197,25 @@ insert into consumo values('5425758312840399', '881', 15, 1000.00);
 insert into consumo values('4449942525596585', '552', 12, 2000.00);
 insert into consumo values('4286283215095190', '114', 14, 550.00);
 
+create or replace function funcierre() returns void as $$
+declare
+i int :=0;
+j int :=0;
+n int :=11;
+m int :=9;
+fechain date :='2020-12-28';
+fechac date :='2021-01-28';
+fechav date :='2021-02-10';
+begin
+for i in i..n loop
+for j in j..m loop
+insert into cierre values(2021, i+1, j, fechain, fechac, fechav);
+fechain :=fechain + cast('1 month' as interval);
+fechac :=fechac + cast('1 month' as interval);
+fechav :=fechav + cast('1 month' as interval);
+end loop;
+end loop;
+end;
+$$ language plpgsql;
 
 \c postgres
