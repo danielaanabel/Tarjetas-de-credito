@@ -210,7 +210,7 @@ begin
 for i in i..n loop
     for j in j..m loop
         insert into cierre values(2021, j+1, i, fechain, fechac, fechav);
-        if (trunc(EXTRACT(ISOYEAR FROM fechav)) = 2022) then
+        if (EXTRACT(ISOYEAR FROM fechav) = 2022) then
             fechain :=fechain - cast('11 month' as interval);
             fechac :=fechac - cast('11 month' as interval);
             fechav :=fechav - cast('11 month' as interval);
