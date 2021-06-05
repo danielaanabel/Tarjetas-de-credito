@@ -224,4 +224,29 @@ end loop;
 end;
 $$ language plpgsql;
 
+create function autorizar_compra(p_nrotarjeta char(16),p_codseguridad char(4),p_nrocomercio int,p_monto decimal(7,2)) returns boolean as $$
+begin
+    if not exists(select * from tarjeta where nrotarjeta = p_nrotajeta) then
+        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "tarjeta no valida o no vigente");
+        return false;
+
+    if p_codseguridad != (select codseguridad from tarjeta where nrotarjeta = p_nrotajeta) then
+        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "codigo de seguridad invalido");
+        return false;
+
+    if 'vencida' == (select estado from tarjeta where nrotarjeta = p_nrotajeta) then
+        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "plazo de vigencia expirado");
+        return false;
+
+    if 'suspendida' == (select estado from tarjeta where nrotarjeta = p_nrotajeta) then
+        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "la tarjeta se encuentra suspendida");
+        return false;
+
+    else
+        insert into compra(1, p_nrotarjeta,p_nrocomercio, timestamp, p_monto,true);
+        return true;
+end;
+$$ language plpgsql;
+
+
 \c postgres
