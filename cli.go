@@ -27,13 +27,11 @@ func main() {
 //funcion que se llama desde el main para mostrar todas las opciones del CLI-------------------------------
 func mostrar_opciones() {
 
-	fmt.Println("\n-------------------------------")
-	fmt.Println("Elija una opcion para ejecutar:\n")
+	fmt.Println("\n-------------------------------\nElija una opcion para ejecutar:")
 	fmt.Println("1- Crear base de datos")
 	fmt.Println("2- Crear tablas")
 	fmt.Println("3- Ingresar datos a las tablas")
 	fmt.Println("4- Cerrar conexion con la base")
-
 }
 
 //funcion que detecta la funcion que hay que hacer---------------------------------------------------------
@@ -94,7 +92,6 @@ func conectar_con_bdd() *sql.DB {
 		log.Fatal(err)
 	}
 	fmt.Printf("\n### Base de datos conectada correctamente ###\n")
-	//defer db.Close()
 	return db
 }
 
@@ -106,8 +103,9 @@ func conectar_con_bdd() *sql.DB {
 
 func crear_tablas() {
 
-	db := conectar_con_bdd()
-
+	db := conectar_con_bdd() // conectamos a nuestra base de datos
+	defer db.Close()         // alterminar de ejecutar todo lo que esta en el cuerpo de esta funcion se cierra la bdd hay que hacer esto
+	// en cada funcion que creemos.
 	_, err := db.Exec(`create table cliente(nroCliente int, nombre text, apellido text, domicilio text, telefono char(12))`)
 
 	if err != nil {
@@ -116,8 +114,6 @@ func crear_tablas() {
 
 	//hace falta aqui una funcion que cree las pk y fk
 
-	db.Close()
-
 	fmt.Printf("\n### Tablas creadas ###\n")
 }
 
@@ -125,13 +121,13 @@ func crear_tablas() {
 func llenar_tablas() {
 
 	db := conectar_con_bdd()
+	defer db.Close()
 
 	_, err := db.Exec(`insert into cliente values(1,'Daniela Anabel','Oviedo','San Martin 3814','541130569988')`)
 
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.Close()
 
 	fmt.Printf("\n### Inserts creados###\n")
 }
