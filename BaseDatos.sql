@@ -235,6 +235,10 @@ begin
     if p_codseguridad != (select codseguridad from tarjeta where nrotarjeta = p_nrotajeta) then
         insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "codigo de seguridad invalido");
         return false;
+    
+    if ((select sum(monto) from compra where nrotarjeta = p_nrotarjeta) + p_monto) > (select monto from tarjeta wheren rotarjeta = p_nrotarjeta) then
+        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "supera limite de tareta");
+        return false;
 
     if 'vencida' == (select estado from tarjeta where nrotarjeta = p_nrotajeta) then
         insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "plazo de vigencia expirado");
