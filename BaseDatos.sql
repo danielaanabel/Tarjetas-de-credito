@@ -141,6 +141,8 @@ insert into tarjeta values('340869936801114', 17, '201907', '202406', '675', 900
 insert into tarjeta values('342888106007110', 18, '202103', '202602', '127', 120000.00, 'vigente');
 insert into tarjeta values('343263611209214', 19, '201909', '202408', '901', 200000.00, 'anulada');
 insert into tarjeta values('377829618815820', 20, '201804', '202303', '320', 90000.00, 'suspendida');
+insert into tarjeta values('468153249752468', 21, '202206', '202702', '127', 60000.00, 'vigente');
+insert into tarjeta values('765428196345876', 22, '201908', '202405', '320', 70000.00, 'suspendida');
 
 
 --comercios
