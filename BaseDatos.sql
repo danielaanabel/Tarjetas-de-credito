@@ -269,7 +269,8 @@ declare
     nro_alerta int := (select count(*) from alerta) + 1;
     cod_alerta int := (select count(*) from alerta) + 1000;
 begin
-    --insert into alerta values(nro_alerta, nro_tarjeta, tiempo, nro, cod_alerta, 'se produjo un rechazo')
+    insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, cod_alerta, 'se produjo un rechazo');
+    return new;
 end;
 $$ language plpgsql;
 
