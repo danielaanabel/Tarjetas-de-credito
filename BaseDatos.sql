@@ -225,29 +225,38 @@ end;
 $$ language plpgsql;
 
 create function autorizar_compra(p_nrotarjeta char(16),p_codseguridad char(4),p_nrocomercio int,p_monto decimal(7,2)) returns boolean as $$
+declare
+    n int;
+    t timestamp;
 begin
     if not exists(select * from tarjeta where nrotarjeta = p_nrotajeta) then
-        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "tarjeta no valida o no vigente");
+        n = (count(*) from rechazo) + 1;
+        insert into rechazo(n, p_nrotajeta,p_nrocomercio, t, p_monto, "tarjeta no valida o no vigente");
         return false;
 
     if p_codseguridad != (select codseguridad from tarjeta where nrotarjeta = p_nrotajeta) then
-        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "codigo de seguridad invalido");
+        n = (count(*) from rechazo) + 1;
+        insert into rechazo(n, p_nrotajeta,p_nrocomercio, t, p_monto, "codigo de seguridad invalido");
         return false;
     
     if ((select sum(monto) from compra where nrotarjeta = p_nrotarjeta) + p_monto) > (select monto from tarjeta wheren rotarjeta = p_nrotarjeta) then
-        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "supera limite de tareta");
+        n = (count(*) from rechazo) + 1;
+        insert into rechazo(n, p_nrotajeta,p_nrocomercio, t, p_monto, "supera limite de tareta");
         return false;
 
     if 'vencida' == (select estado from tarjeta where nrotarjeta = p_nrotajeta) then
-        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "plazo de vigencia expirado");
+        n = (count(*) from rechazo) + 1;
+        insert into rechazo(n, p_nrotajeta,p_nrocomercio, t, p_monto, "plazo de vigencia expirado");
         return false;
 
     if 'suspendida' == (select estado from tarjeta where nrotarjeta = p_nrotajeta) then
-        insert into rechazo(2, p_nrotajeta,p_nrocomercio, timestamp, p_monto, "la tarjeta se encuentra suspendida");
+        n = (count(*) from rechazo) + 1;
+        insert into rechazo(n, p_nrotajeta,p_nrocomercio, t, p_monto, "la tarjeta se encuentra suspendida");
         return false;
 
     else
-        insert into compra(1, p_nrotarjeta,p_nrocomercio, timestamp, p_monto,true);
+        n = (count(*) from compra) + 1;
+        insert into compra(n, p_nrotarjeta,p_nrocomercio, t, p_monto,true);
         return true;
 end;
 $$ language plpgsql;
