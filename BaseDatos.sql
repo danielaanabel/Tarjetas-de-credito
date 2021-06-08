@@ -264,10 +264,10 @@ end;
 $$ language plpgsql;
 
 
-create function func_alerta() returns trigger as $$
+create function func_alerta_rechazo() returns trigger as $$
 declare
     nro_alerta int := (select count(*) from alerta) + 1;
-    cod_alerta int := (select count(*) from alerta) + 1000;
+    cod_alerta int := 0;
 begin
     insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, cod_alerta, 'se produjo un rechazo');
     return new;
@@ -277,6 +277,6 @@ $$ language plpgsql;
 create trigger rechazo_trg
 after insert on rechazo
 for each row
-execute procedure func_alerta();
+execute procedure func_alerta_rechazo();
 
 \c postgres
