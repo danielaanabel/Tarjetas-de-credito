@@ -241,7 +241,7 @@ begin
         insert into rechazo values(nro, nro_tajeta, nro_comercio, tiempo, p_monto, 'codigo de seguridad invalido');
         return false;
     end if;
-    if ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > (select monto from tarjeta where nrotarjeta = nro_tarjeta) then
+    if ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > (select limitecompra from tarjeta where nrotarjeta = nro_tarjeta) then
         nro = (select count(*) from rechazo) + 1;
         insert into rechazo values(nro, nro_tajeta, nro_comercio, tiempo, p_monto, 'supera limite de tareta');
         return false;
@@ -266,10 +266,17 @@ $$ language plpgsql;
 
 create function func_alerta_rechazo() returns trigger as $$
 declare
-    nro_alerta int := (select count(*) from alerta) + 1;
-    cod_alerta int := 0;
+    nro_alerta int;
 begin
-    insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, cod_alerta, 'se produjo un rechazo');
+    nro_alerta = (select count(*) from alerta) + 1;
+    insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
+
+    if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tareta') > 1 then 
+        --if (fecha-new.fecha < 1 dia)
+        update tareta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
+        nro_alerta = (select count(*) from alerta) + 1;
+        insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+    end if;    
     return new;
 end;
 $$ language plpgsql;
@@ -278,5 +285,15 @@ create trigger rechazo_trg
 after insert on rechazo
 for each row
 execute procedure func_alerta_rechazo();
+
+--create function func_alerta_rechazo() returns trigger as $$
+
+--end;
+--$$ language plpgsql;
+
+--create trigger compra_trg
+--after insert on compra
+--for each row
+--execute procedure func_alerta_compra();
 
 \c postgres
