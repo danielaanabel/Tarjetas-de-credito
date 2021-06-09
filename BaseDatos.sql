@@ -199,7 +199,7 @@ insert into consumo values('4286283215095190', '114', 14, 550.00);
 
 
  
-    (nrotarjeta, nrocomercio, fecha, monto, motivo)
+
 
 create or replace function funcierre() returns void as $$
 declare
@@ -231,30 +231,30 @@ $$ language plpgsql;
 
 create function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(7,2)) returns boolean as $$
 declare
-    tiempo timestamp := localtimestamp;
+    fecha_actual timestamp := current_date; --fecha actual sin la hora
 begin
-    if not exists(select * from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'tarjeta no valida o no vigente');
+    if not exists(select * from tarjeta where nrotarjeta = nro_tajeta or verificar_vigencia(select validahasta from tarjeta where nrotarjeta = nro_tajeta)) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
         return false;
     end if;
     if cod_seguridad != (select codseguridad from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'codigo de seguridad invalido');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
         return false;
     end if;
     if ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > (select limitecompra from tarjeta where nrotarjeta = nro_tarjeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'supera limite de tareta');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tareta');
         return false;
     end if;
-    if 'vencida' == (select estado from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'plazo de vigencia expirado');
+    if (verificar_vigencia(select validahasta from tarjeta where nrotarjeta = nro_tajeta)) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
         return false;
     end if;
     if 'suspendida' == (select estado from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'la tarjeta se encuentra suspendida');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
         return false;
     else
         --se autoriza la compra
-        insert into compra (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, tiempo, p_monto, true);
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, true);
         return true;
     end if;
 end;
@@ -270,7 +270,7 @@ begin
 
     if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tareta') > 1 then 
         --if (fecha-new.fecha < 1 dia)
-        update tareta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
+        update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
         nro_alerta = (select count(*) from alerta) + 1;
         insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
     end if;    
@@ -292,6 +292,23 @@ execute procedure func_alerta_rechazo();
 --after insert on compra
 --for each row
 --execute procedure func_alerta_compra();
+
+
+--funcion para comprobar si una tarjeta esta vencida recibe como parametro el campo validahasta
+create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
+declare
+    fecha_actual_mes char(2) := extract(month from current_date); --extrae el mes de la fecha actual
+    fecha_actual_año char(4) := extract(year from current_date);  --extra el año de la fecha actual
+    fecha_tarjeta_mes char(2) := substr(fecha_vencimiento, 5, 2); --extrae el mes de la fecha de vencimiento de la tarjeta
+    fecha_tarjeta_año char(4) := substr(fecha_vencimiento, 1, 4); --extrae el año de la fecha de vencimiento de la tarjeta
+   
+begin
+    if (fecha_tarjeta_mes <= fecha_actual_mes or fecha_tarjeta_año < fecha_actual_año) then --compara los meses con el actual y si el mes esta bien se fija si el año es menor al actual.
+        return false;
+    end if;
+return true;
+end;
+$$ language plpgsql;
 
 
 
