@@ -199,29 +199,29 @@ insert into consumo values('4286283215095190', '114', 14, 550.00);
 
 
  
-    (nrotarjeta, nrocomercio, fecha, monto, motivo)
+    --(nrotarjeta, nrocomercio, fecha, monto, motivo)
 
 create or replace function funcierre() returns void as $$
 declare
-	i int :=0;
-	j int :=0;
-	n int :=9;
-	m int :=11;
-	fecha_inicio date :='2020-12-28';
-	fecha_cierre date :='2021-01-28';
-	fecha_vencimiento date :='2021-02-10';
+	i int := 0;
+	j int := 0;
+	n int := 9;
+	m int := 11;
+	fecha_inicio date := '2020-12-28';
+	fecha_cierre date := '2021-01-28';
+	fecha_vencimiento date := '2021-02-10';
 begin
 for i in i..n loop
     for j in j..m loop
         insert into cierre values(2021, j+1, i, fecha_inicio, fecha_cierre, fecha_vencimiento);
         if (EXTRACT(ISOYEAR FROM fecha_vencimiento) = 2022) then
-            fecha_inicio :=fecha_inicio - cast('11 month' as interval);
-            fecha_cierre :=fecha_cierre - cast('11 month' as interval);
-            fecha_vencimiento :=fecha_vencimiento - cast('11 month' as interval);
+            fecha_inicio := fecha_inicio - cast('11 month' as interval);
+            fecha_cierre := fecha_cierre - cast('11 month' as interval);
+            fecha_vencimiento := fecha_vencimiento - cast('11 month' as interval);
         else
-            fecha_inicio :=fecha_inicio + cast('1 month' as interval);
-            fecha_cierre :=fecha_cierre+ cast('1 month' as interval);
-            fecha_vencimiento :=fecha_vencimiento + cast('1 month' as interval);
+            fecha_inicio := fecha_inicio + cast('1 month' as interval);
+            fecha_cierre := fecha_cierre+ cast('1 month' as interval);
+            fecha_vencimiento := fecha_vencimiento + cast('1 month' as interval);
         end if;
     end loop;
 end loop;
@@ -234,27 +234,33 @@ declare
     tiempo timestamp := localtimestamp;
 begin
     if not exists(select * from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'tarjeta no valida o no vigente');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+            values(nro_tajeta, nro_comercio, tiempo, p_monto, 'tarjeta no valida o no vigente');
         return false;
     end if;
     if cod_seguridad != (select codseguridad from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'codigo de seguridad invalido');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+                values(nro_tajeta, nro_comercio, tiempo, p_monto, 'codigo de seguridad invalido');
         return false;
     end if;
     if ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > (select limitecompra from tarjeta where nrotarjeta = nro_tarjeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'supera limite de tareta');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+                values(nro_tajeta, nro_comercio, tiempo, p_monto, 'supera limite de tarjeta');
         return false;
     end if;
     if 'vencida' == (select estado from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'plazo de vigencia expirado');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+                values(nro_tajeta, nro_comercio, tiempo, p_monto, 'plazo de vigencia expirado');
         return false;
     end if;
     if 'suspendida' == (select estado from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'la tarjeta se encuentra suspendida');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+                values(nro_tajeta, nro_comercio, tiempo, p_monto, 'la tarjeta se encuentra suspendida');
         return false;
     else
         --se autoriza la compra
-        insert into compra (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, tiempo, p_monto, true);
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+                values(nro_tarjeta, nro_comercio, tiempo, p_monto, true);
         return true;
     end if;
 end;
@@ -264,12 +270,14 @@ $$ language plpgsql;
 create function func_alerta_rechazo() returns trigger as $$
 declare
     nro_alerta int;
+    undia timestamp := '2021-01-28'-'2021-01-27';
 begin
     nro_alerta = (select count(*) from alerta) + 1;
     insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
 
-    if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tareta') > 1 then 
-        --if (fecha-new.fecha < 1 dia)
+    if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' 
+        and new.fecha - fecha < undia) > 0 then 
+        
         update tareta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
         nro_alerta = (select count(*) from alerta) + 1;
         insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
