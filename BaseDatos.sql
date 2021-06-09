@@ -39,7 +39,7 @@ create table compra(
 );
 
 create table rechazo(
-    nrorechazo  int,
+    nrorechazo  serial,
     nrotarjeta  char(16),
     nrocomercio int,
     fecha   timestamp,
@@ -198,6 +198,9 @@ insert into consumo values('4449942525596585', '552', 12, 2000.00);
 insert into consumo values('4286283215095190', '114', 14, 550.00);
 
 
+ 
+    (nrotarjeta, nrocomercio, fecha, monto, motivo)
+
 create or replace function funcierre() returns void as $$
 declare
 	i int :=0;
@@ -228,36 +231,30 @@ $$ language plpgsql;
 
 create function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(7,2)) returns boolean as $$
 declare
-    nro int;
     tiempo timestamp := localtimestamp;
 begin
     if not exists(select * from tarjeta where nrotarjeta = nro_tajeta) then
-        nro = (select count(*) from rechazo) + 1;
-        insert into rechazo values(nro, nro_tajeta, nro_comercio, tiempo, p_monto, 'tarjeta no valida o no vigente');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'tarjeta no valida o no vigente');
         return false;
     end if;
     if cod_seguridad != (select codseguridad from tarjeta where nrotarjeta = nro_tajeta) then
-        nro = (select count(*) from rechazo) + 1;
-        insert into rechazo values(nro, nro_tajeta, nro_comercio, tiempo, p_monto, 'codigo de seguridad invalido');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'codigo de seguridad invalido');
         return false;
     end if;
     if ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > (select limitecompra from tarjeta where nrotarjeta = nro_tarjeta) then
-        nro = (select count(*) from rechazo) + 1;
-        insert into rechazo values(nro, nro_tajeta, nro_comercio, tiempo, p_monto, 'supera limite de tareta');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'supera limite de tareta');
         return false;
     end if;
     if 'vencida' == (select estado from tarjeta where nrotarjeta = nro_tajeta) then
-        nro = (select count(*) from rechazo) + 1;
-        insert into rechazo values(nro, nro_tajeta, nro_comercio, tiempo, p_monto, 'plazo de vigencia expirado');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'plazo de vigencia expirado');
         return false;
     end if;
     if 'suspendida' == (select estado from tarjeta where nrotarjeta = nro_tajeta) then
-        nro = (select count(*) from rechazo) + 1;
-        insert into rechazo values(nro, nro_tajeta, nro_comercio, tiempo, p_monto, 'la tarjeta se encuentra suspendida');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'la tarjeta se encuentra suspendida');
         return false;
     else
-        nro = (select count(*) from compra) + 1;
-        insert into compra values(nro, nro_tarjeta, nro_comercio, tiempo, p_monto, true);
+        --se autoriza la compra
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, tiempo, p_monto, true);
         return true;
     end if;
 end;
@@ -295,5 +292,8 @@ execute procedure func_alerta_rechazo();
 --after insert on compra
 --for each row
 --execute procedure func_alerta_compra();
+
+
+
 
 \c postgres

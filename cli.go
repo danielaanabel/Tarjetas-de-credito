@@ -34,7 +34,7 @@ func mostrar_opciones() {
 	fmt.Println("4- Cerrar conexion con la base")
 }
 
-//funcion que detecta la funcion que hay que hacer---------------------------------------------------------
+//funcion que detecta la opción elegida a ejecutar---------------------------------------------------------
 func ejecutar_opcion(opcion_elegida int) {
 
 	fmt.Printf("La opcion elegida fue %v ", opcion_elegida) //linea solo de prueba para ver que funcione
