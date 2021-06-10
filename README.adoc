@@ -1,4 +1,4 @@
-= Base de datos Trabajo Práctico
+= Base de datos: Trabajo Práctico
 :toc:
 :toc-title: Contenidos
 :numbered:
@@ -13,6 +13,14 @@
 
 
 == Introducción
+
+El trabajo práctico solicita la creación de una base de datos para un sistema de tarjetas de crédito. 
+
+El sistema debe contar con un registro de compras realizadas con cada tarjeta. Cada tarjeta le pertenece a un cliente (a excepción de dos clientes que tendrán dos). Los clientes realizan compras en comercios a través de su tarjeta.
+
+=== Tarjetas de crédito
+
+Las tarjetas de crédito no tienen extensiones. Debe tener su fecha de validez inicial y final. También tiene un límite de compra y un estado (vigente, suspendida o anulada). Además, las tarjetas tienen
 
 == Desarrollo
 
