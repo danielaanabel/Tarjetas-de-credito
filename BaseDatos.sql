@@ -301,7 +301,6 @@ declare
     fecha_tarjeta_mes int:=cast(substr(fecha_vencimiento, 5, 2)  as int); --extrae el mes de la fecha de vencimiento de la tarjeta
     fecha_tarjeta_año int:=cast(substr(fecha_vencimiento, 1, 4)  as int); --extrae el año de la fecha de vencimiento de la tarjeta
 begin
-    insert into prueba values(fecha_actual_año,fecha_actual_mes,fecha_tarjeta_año,fecha_tarjeta_mes);
         if ((fecha_tarjeta_mes <= fecha_actual_mes and fecha_tarjeta_año <= fecha_actual_año) or fecha_tarjeta_año < fecha_actual_año) then
             return false;
         end if;
