@@ -236,23 +236,39 @@ declare
 begin
     select * into fila from tarjeta where nrotarjeta = nro_tarjeta;
     if  not found then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+
         return false;
     
     elsif cod_seguridad != fila.codseguridad then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+
         return false;
     
     elsif ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > fila.limitecompra then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
+
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
+
         return false;
     
     elsif (select verificar_vigencia((fila.validahasta))) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+
         return false;
     elsif 'suspendida' = (fila.estado) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+
         return false;
+
     else
         --se autoriza la compra
         insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, true);
@@ -269,14 +285,17 @@ declare
     undia timestamp := '2021-01-28'-'2021-01-27';
 begin
  
-    insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
+    insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+    values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
 
-    if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' 
+    if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta 
+        and motivo = 'supera limite de tarjeta' 
         and new.fecha - fecha < undia) > 1 then 
         
         update tareta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
         
-        insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+        insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+        values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
     end if;    
     return new;
 end;
@@ -287,15 +306,32 @@ after insert on rechazo
 for each row
 execute procedure func_alerta_rechazo();
 
---create function func_alerta_rechazo() returns trigger as $$
+create function func_alerta_compra() returns trigger as $$
+declare
+    unminuto timestamp := '2021-01-28 01:01'-'2021-01-28 01:00';
+    cincominutos timestamp := '2021-01-28 01:05'-'2021-01-28 01:00';
+    filacompra record;
+    filacomercio record;
 
---end;
---$$ language plpgsql;
+begin
+    select * into filacompra from compra where nrotarjeta = new.nrotarjeta;
+    select * into filacomercio from comercio where nrocomercio = new.nrocomercio;
 
---create trigger compra_trg
---after insert on compra
---for each row
---execute procedure func_alerta_compra();
+    if (select count(*) from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+        (select distint nrocomercio from comercio where codigopostal = filacompra.codigopostal)
+        and new.fecha - fecha < unminuto) > 1 then 
+        
+        insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+        values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 1 ,'dos compras dentro del distrito en menos de un minuto');
+        
+    end if;
+end;
+$$ language plpgsql;
+
+create trigger compra_trg
+after insert on compra
+for each row
+execute procedure func_alerta_compra();
 
 
 create or replace function genera_resumen (num_cliente int, periodo char(2)) returns void as $$
