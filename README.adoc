@@ -1,12 +1,12 @@
-= TP Grupo 9
-
-Integrantes
--Ferreyra Fernando
--Goñez Elías
--Oviedo Daniela
--Segregin Romina
-
+= Base de datos Trabajo Práctico
 :toc:
 :toc-title: Contenidos
 :numbered:
+
+-Ferreyra Fernando.
+-Goñez Elías.
+-Oviedo Daniela.
+-Segregin Romina.
+
+== Introducción
 
