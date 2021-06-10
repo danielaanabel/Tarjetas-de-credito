@@ -292,7 +292,7 @@ begin
         and motivo = 'supera limite de tarjeta' 
         and new.fecha - fecha < undia) > 1 then 
         
-        update tareta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
+        update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
         
         insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
         values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
@@ -317,7 +317,7 @@ begin
     select * into filacompra from compra where nrotarjeta = new.nrotarjeta;
     select * into filacomercio from comercio where nrocomercio = new.nrocomercio;
 
-    if (select count(*) from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+    if (select count(*) from compra where nrotarjeta = filacompra.nrotarjeta and nrocomercio in
         (select distint nrocomercio from comercio where codigopostal = filacompra.codigopostal)
         and new.fecha - fecha < unminuto) > 1 then 
         
