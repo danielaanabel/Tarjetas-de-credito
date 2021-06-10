@@ -30,7 +30,7 @@ create table comercio(
 );
 
 create table compra(
-    nrooperacion int,
+    nrooperacion serial,
     nrotarjeta  char(16),
     nrocomercio int,
     fecha   timestamp,
@@ -57,7 +57,7 @@ create table cierre(
 );
 
 create table cabecera(
-    nroresumen  int,
+    nroresumen  serial,
     nombre      text,
     apellido    text,
     domicilio   text,
@@ -69,7 +69,7 @@ create table cabecera(
 );
 
 create table detalle(
-    nroresumen  int,
+    nroresumen  serial,
     nrolinea    int,
     fecha   date,
     nombrecomercio text,
@@ -199,28 +199,29 @@ insert into consumo values('4286283215095190', '114', 14, 550.00);
 
 
  
+    (nrotarjeta, nrocomercio, fecha, monto, motivo)
 
 create or replace function funcierre() returns void as $$
 declare
-	i int := 0;
-	j int := 0;
-	n int := 9;
-	m int := 11;
-	fecha_inicio date := '2020-12-28';
-	fecha_cierre date := '2021-01-28';
-	fecha_vencimiento date := '2021-02-10';
+	i int :=0;
+	j int :=0;
+	n int :=9;
+	m int :=11;
+	fecha_inicio date :='2020-12-28';
+	fecha_cierre date :='2021-01-27';
+	fecha_vencimiento date :='2021-02-10';
 begin
 for i in i..n loop
     for j in j..m loop
         insert into cierre values(2021, j+1, i, fecha_inicio, fecha_cierre, fecha_vencimiento);
         if (EXTRACT(ISOYEAR FROM fecha_vencimiento) = 2022) then
-            fecha_inicio := fecha_inicio - cast('11 month' as interval);
-            fecha_cierre := fecha_cierre - cast('11 month' as interval);
-            fecha_vencimiento := fecha_vencimiento - cast('11 month' as interval);
+            fecha_inicio :=fecha_inicio - cast('11 month' as interval);
+            fecha_cierre :=fecha_cierre - cast('11 month' as interval);
+            fecha_vencimiento :=fecha_vencimiento - cast('11 month' as interval);
         else
-            fecha_inicio := fecha_inicio + cast('1 month' as interval);
-            fecha_cierre := fecha_cierre+ cast('1 month' as interval);
-            fecha_vencimiento := fecha_vencimiento + cast('1 month' as interval);
+            fecha_inicio :=fecha_inicio + cast('1 month' as interval);
+            fecha_cierre :=fecha_cierre+ cast('1 month' as interval);
+            fecha_vencimiento :=fecha_vencimiento + cast('1 month' as interval);
         end if;
     end loop;
 end loop;
@@ -230,30 +231,30 @@ $$ language plpgsql;
 
 create function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(7,2)) returns boolean as $$
 declare
-    fecha_actual timestamp := current_date; --fecha actual sin la hora
+    tiempo timestamp := localtimestamp;
 begin
-    if not exists(select * from tarjeta where nrotarjeta = nro_tajeta or verificar_vigencia(select validahasta from tarjeta where nrotarjeta = nro_tajeta)) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+    if not exists(select * from tarjeta where nrotarjeta = nro_tajeta) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'tarjeta no valida o no vigente');
         return false;
     end if;
     if cod_seguridad != (select codseguridad from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'codigo de seguridad invalido');
         return false;
     end if;
     if ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > (select limitecompra from tarjeta where nrotarjeta = nro_tarjeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tareta');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'supera limite de tareta');
         return false;
     end if;
-    if (verificar_vigencia(select validahasta from tarjeta where nrotarjeta = nro_tajeta)) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+    if 'vencida' == (select estado from tarjeta where nrotarjeta = nro_tajeta) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'plazo de vigencia expirado');
         return false;
     end if;
     if 'suspendida' == (select estado from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, tiempo, p_monto, 'la tarjeta se encuentra suspendida');
         return false;
     else
         --se autoriza la compra
-        insert into compra (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, true);
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, tiempo, p_monto, true);
         return true;
     end if;
 end;
@@ -263,14 +264,13 @@ $$ language plpgsql;
 create function func_alerta_rechazo() returns trigger as $$
 declare
     nro_alerta int;
-    undia timestamp := '2021-01-28'-'2021-01-27';
 begin
     nro_alerta = (select count(*) from alerta) + 1;
     insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
 
     if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tareta') > 1 then 
         --if (fecha-new.fecha < 1 dia)
-        update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
+        update tareta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
         nro_alerta = (select count(*) from alerta) + 1;
         insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
     end if;    
@@ -293,23 +293,41 @@ execute procedure func_alerta_rechazo();
 --for each row
 --execute procedure func_alerta_compra();
 
---funcion para comprobar si una tarjeta esta vencida recibe como parametro el campo validahasta
-create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
+
+create or replace function genera_resumen (num_cliente int, periodo char(2)) returns void as $$
 declare
-    fecha_actual_mes int :=cast(extract(month from current_date) as int); --extrae el mes de la fecha actual
-    fecha_actual_año int :=cast(extract(year from current_date)  as int); --extrae el año de la fecha actual
-    fecha_tarjeta_mes int:=cast(substr(fecha_vencimiento, 5, 2)  as int); --extrae el mes de la fecha de vencimiento de la tarjeta
-    fecha_tarjeta_año int:=cast(substr(fecha_vencimiento, 1, 4)  as int); --extrae el año de la fecha de vencimiento de la tarjeta
+    datos_cliente record;
+    tarjeta  record;
+    compras_cliente record;
+    datos_cierre record;
+    num_periodo int := cast (periodo as int);
+    fila record;
+    i int :=1;
 begin
-    insert into prueba values(fecha_actual_año,fecha_actual_mes,fecha_tarjeta_año,fecha_tarjeta_mes);
-        if ((fecha_tarjeta_mes <= fecha_actual_mes and fecha_tarjeta_año <= fecha_actual_año) or fecha_tarjeta_año < fecha_actual_año) then
-            return false;
-        end if;
-return true;
+    
+
+
+    tarjeta := select nrotarjeta from tarjeta where nrocliente = (select nrocliente from cliente where nrocliente = num_cliente) ;
+    datos_cierre := select* from cierre where (
+        terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer));
+    compras_cliente := select * from compra where (nrotarjeta =tarjeta AND (
+        (EXTRACT(ISOMONTH FROM fecha)= num_periodo AND EXTRACT(ISODAY FROM fecha)<27) 
+        OR (EXTRACT(ISOMONTH FROM fecha)= num_periodo + 1 AND EXTRACT(ISODAY FROM fecha)>28)));
+
+    insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total) values (
+    select nombre from cliente where nrocliente = num_cliente, select apellido from cliente where nrocliente = num_cliente, 
+    select domicilio from cliente where nrocliente = num_cliente, 
+    tarjeta, select fechainicio from datos_cierre, select fechacierre from datos_cierre, 
+    select fechavto from datos_cierre, select sum (monto) from compras_cliente);
+
+    for fila in select * from compras_cliente loop
+
+        insert into detalle (nrolinea, fecha, nombrecomercio, monto) values (1, fecha, 
+        select nombre from comercio where nrocomercio = (select nrocomercio from compras_cliente), monto);
+        i := i+1;
+    end loop;
+
 end;
 $$ language plpgsql;
-
-
-
 
 \c postgres
