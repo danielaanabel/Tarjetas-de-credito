@@ -309,7 +309,6 @@ declare
     i int :=1;
 
 begin
-
     tarjeta := select nrotarjeta from tarjeta where nrocliente = (select nrocliente from cliente where nrocliente = num_cliente);
     datos_cierre := select* from cierre where (
         terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer));
