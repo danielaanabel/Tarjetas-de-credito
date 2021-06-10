@@ -30,7 +30,7 @@ create table comercio(
 );
 
 create table compra(
-    nrooperacion int,
+    nrooperacion serial,
     nrotarjeta  char(16),
     nrocomercio int,
     fecha   timestamp,
@@ -57,7 +57,7 @@ create table cierre(
 );
 
 create table cabecera(
-    nroresumen  int,
+    nroresumen  serial,
     nombre      text,
     apellido    text,
     domicilio   text,
@@ -69,7 +69,7 @@ create table cabecera(
 );
 
 create table detalle(
-    nroresumen  int,
+    nroresumen  serial,
     nrolinea    int,
     fecha   date,
     nombrecomercio text,
@@ -199,16 +199,17 @@ insert into consumo values('4286283215095190', '114', 14, 550.00);
 
 
  
+    --(nrotarjeta, nrocomercio, fecha, monto, motivo)
 
 create or replace function funcierre() returns void as $$
 declare
-	i int := 0;
-	j int := 0;
-	n int := 9;
-	m int := 11;
-	fecha_inicio date := '2020-12-28';
-	fecha_cierre date := '2021-01-28';
-	fecha_vencimiento date := '2021-02-10';
+	i int :=0;
+	j int :=0;
+	n int :=9;
+	m int :=11;
+	fecha_inicio date :='2020-12-28';
+	fecha_cierre date :='2021-01-27';
+	fecha_vencimiento date :='2021-02-10';
 begin
 for i in i..n loop
     for j in j..m loop
@@ -260,6 +261,7 @@ end;
 $$ language plpgsql;
 
 
+
 create function func_alerta_rechazo() returns trigger as $$
 declare
     nro_alerta int;
@@ -268,9 +270,10 @@ begin
     nro_alerta = (select count(*) from alerta) + 1;
     insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
 
-    if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tareta') > 1 then 
-        --if (fecha-new.fecha < 1 dia)
-        update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
+    if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' 
+        and new.fecha - fecha < undia) > 1 then 
+        
+        update tareta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
         nro_alerta = (select count(*) from alerta) + 1;
         insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
     end if;    
@@ -293,6 +296,42 @@ execute procedure func_alerta_rechazo();
 --for each row
 --execute procedure func_alerta_compra();
 
+
+create or replace function genera_resumen (num_cliente int, periodo char(2)) returns void as $$
+declare
+    datos_cliente record;
+    tarjeta  record;
+    compras_cliente record;
+    datos_cierre record;
+    num_periodo int := cast (periodo as int);
+    fila record;
+    i int :=1;
+
+begin
+
+    tarjeta := select nrotarjeta from tarjeta where nrocliente = (select nrocliente from cliente where nrocliente = num_cliente);
+    datos_cierre := select* from cierre where (
+        terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer));
+    compras_cliente := select * from compra where (nrotarjeta =tarjeta AND (
+        (EXTRACT(ISOMONTH FROM fecha)= num_periodo AND EXTRACT(ISODAY FROM fecha)<27) 
+            OR (EXTRACT(ISOMONTH FROM fecha)= num_periodo + 1 AND EXTRACT(ISODAY FROM fecha)>28)));
+
+    insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total) values (
+    select nombre from cliente where nrocliente = num_cliente, select apellido from cliente where nrocliente = num_cliente, 
+    select domicilio from cliente where nrocliente = num_cliente, 
+    tarjeta, select fechainicio from datos_cierre, select fechacierre from datos_cierre, 
+    select fechavto from datos_cierre, select sum (monto) from compras_cliente);
+
+    for fila in select * from compras_cliente loop
+
+        insert into detalle (nrolinea, fecha, nombrecomercio, monto) values (1, fecha, 
+        select nombre from comercio where nrocomercio = (select nrocomercio from compras_cliente), monto);
+        i := i+1;
+    end loop;
+
+end;
+$$ language plpgsql;
+
 --funcion para comprobar si una tarjeta esta vencida recibe como parametro el campo validahasta
 create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
 declare
@@ -307,8 +346,6 @@ begin
 return true;
 end;
 $$ language plpgsql;
-
-
 
 
 \c postgres
