@@ -77,7 +77,7 @@ create table detalle(
 );
 
 create table alerta(
-    nroalerta   int,
+    nroalerta   serial,
     nrotarjeta  char(16),
     fecha   timestamp,
     nrorechazo  int,
@@ -264,18 +264,18 @@ $$ language plpgsql;
 
 create function func_alerta_rechazo() returns trigger as $$
 declare
-    nro_alerta int;
+  
     undia timestamp := '2021-01-28'-'2021-01-27';
 begin
-    nro_alerta = (select count(*) from alerta) + 1;
-    insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
+ 
+    insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
 
     if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' 
         and new.fecha - fecha < undia) > 1 then 
         
         update tareta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
-        nro_alerta = (select count(*) from alerta) + 1;
-        insert into alerta values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+        
+        insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
     end if;    
     return new;
 end;
@@ -349,3 +349,6 @@ $$ language plpgsql;
 
 
 \c postgres
+
+
+   
