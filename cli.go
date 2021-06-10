@@ -106,7 +106,7 @@ func crear_tablas() {
 	db := conectar_con_bdd() // conectamos a nuestra base de datos
 	defer db.Close()         // alterminar de ejecutar todo lo que esta en el cuerpo de esta funcion se cierra la bdd hay que hacer esto
 	// en cada funcion que creemos.
-	_, err := db.Exec(`create table cliente(nroCliente int, nombre text, apellido text, domicilio text, telefono char(12))`)
+	_, err := db.Exec(`create table cliente(nroCliente int, nombre text, apellido text, domicilio text, telefono char(12));`)
 
 	if err != nil {
 		log.Fatal(err)
