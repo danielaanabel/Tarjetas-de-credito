@@ -230,43 +230,34 @@ $$ language plpgsql;
 
 create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(7,2)) returns boolean as $$
 declare
-    fecha_actual timestamp := current_date; --fecha actual sin la hora
-    fila record;
+    fecha_actual timestamp := current_timestamp(2); --fecha actual 
+    tarjeta record;
 
 begin
-    select * into fila from tarjeta where nrotarjeta = nro_tarjeta;
+    select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
     if  not found then
-
         insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
         values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
-
         return false;
     
     elsif cod_seguridad != fila.codseguridad then
-
         insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
         values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
-
         return false;
     
     elsif ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > fila.limitecompra then
-
         insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
         values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
-
         return false;
     
     elsif (select verificar_vigencia((fila.validahasta))) then
-
         insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
         values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
-
         return false;
-    elsif 'suspendida' = (fila.estado) then
 
+    elsif 'suspendida' = (fila.estado) then
         insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
         values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
-
         return false;
 
     else
