@@ -199,8 +199,7 @@ insert into consumo values('4286283215095190', '114', 14, 550.00);
 
 
  
-    --(nrotarjeta, nrocomercio, fecha, monto, motivo)
-
+--funcion para hacer los insert en la tabla cierre
 create or replace function funcierre() returns void as $$
 declare
 	i int :=0;
@@ -229,28 +228,28 @@ end;
 $$ language plpgsql;
 
 
-create function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(7,2)) returns boolean as $$
+create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(7,2)) returns boolean as $$
 declare
     fecha_actual timestamp := current_date; --fecha actual sin la hora
 begin
     if not exists(select * from tarjeta where nrotarjeta = nro_tajeta or verificar_vigencia(select validahasta from tarjeta where nrotarjeta = nro_tajeta)) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
         return false;
     end if;
     if cod_seguridad != (select codseguridad from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
         return false;
     end if;
     if ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > (select limitecompra from tarjeta where nrotarjeta = nro_tarjeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tareta');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tareta');
         return false;
     end if;
     if (verificar_vigencia(select validahasta from tarjeta where nrotarjeta = nro_tajeta)) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
         return false;
     end if;
     if 'suspendida' == (select estado from tarjeta where nrotarjeta = nro_tajeta) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tajeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
         return false;
     else
         --se autoriza la compra
@@ -262,7 +261,7 @@ $$ language plpgsql;
 
 
 
-create function func_alerta_rechazo() returns trigger as $$
+create or replace function func_alerta_rechazo() returns trigger as $$
 declare
   
     undia timestamp := '2021-01-28'-'2021-01-27';
@@ -335,15 +334,14 @@ $$ language plpgsql;
 --funcion para comprobar si una tarjeta esta vencida recibe como parametro el campo validahasta
 create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
 declare
-    fecha_actual_mes int :=cast(extract(month from current_date) as int); --extrae el mes de la fecha actual
-    fecha_actual_año int :=cast(extract(year from current_date)  as int); --extrae el año de la fecha actual
-    fecha_tarjeta_mes int:=cast(substr(fecha_vencimiento, 5, 2)  as int); --extrae el mes de la fecha de vencimiento de la tarjeta
-    fecha_tarjeta_año int:=cast(substr(fecha_vencimiento, 1, 4)  as int); --extrae el año de la fecha de vencimiento de la tarjeta
+     fecha_actual date :=to_date(to_char(current_date,'YYYYMM'),'YYYYMM'); --extrae el año y mes de la fecha actual en formato date
+     fecha_tarjeta date:=to_date(fecha_vencimiento, 'YYYYMM'); --extrae el año y mes de la fecha de vencimiento de la tarjeta en formato date
+
 begin
-        if ((fecha_tarjeta_mes <= fecha_actual_mes and fecha_tarjeta_año <= fecha_actual_año) or fecha_tarjeta_año < fecha_actual_año) then
-            return false;
-        end if;
-return true;
+     if (fecha_tarjeta <= fecha_actual) then
+        return true;
+     end if;
+return false;
 end;
 $$ language plpgsql;
 
