@@ -3,10 +3,18 @@
 :toc-title: Contenidos
 :numbered:
 
--Ferreyra Fernando.
--Goñez Elías.
--Oviedo Daniela.
--Segregin Romina.
+== Integrantes
+
+* Ferreyra Fernando.
+* Goñez Elías.
+* Oviedo Daniela.
+* Segregin Romina.
+
+
 
 == Introducción
+
+== Desarrollo
+
+== Problemas encontrados
 
