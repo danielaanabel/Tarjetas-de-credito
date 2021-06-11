@@ -245,7 +245,7 @@ begin
         values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
         return false;
     
-    elsif ((select sum(monto) from compra where nrotarjeta = nro_tarjeta) + p_monto) > fila.limitecompra then
+    elsif select ((select sum(monto) from compra where nrotarjeta = nro_tarjeta)+ p_monto) > fila.limitecompra then
         insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
         values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
         return false;
@@ -271,7 +271,7 @@ $$ language plpgsql;
 
 create or replace function func_alerta_rechazo() returns trigger as $$
 declare
-    undia timestamp := '2021-01-28'-'2021-01-27';
+    undia interval := '24:00:00';
 begin
     insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
     values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
@@ -297,8 +297,8 @@ execute procedure func_alerta_rechazo();
 
 create function func_alerta_compra() returns trigger as $$
 declare
-    unminuto timestamp := '2021-01-28 01:01'-'2021-01-28 01:00';
-    cincominutos timestamp := '2021-01-28 01:05'-'2021-01-28 01:00';
+    unminuto interval := '00:01:00';
+    cincominutos timestamp := '00:05:00';
     filacompra record;
     filacomercio record; 
 
