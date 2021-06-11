@@ -307,16 +307,16 @@ begin
     select * into filacomercio from comercio where nrocomercio = new.nrocomercio;
 
     if (select * from compra where nrotarjeta = filacompra.nrotarjeta 
-        and nrocomercio in(select distint nrocomercio from comercio where codigopostal = filacompra.codigopostal)
-        and (filacompra.fecha - fecha) < unminuto).length > 1 then 
+        and nrocomercio in(select distinct nrocomercio from comercio where codigopostal = filacomercio.codigopostal)
+        and (select filacompra.fecha - fecha) < unminuto).length > 1 then 
         
         insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
         values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
     end if;
     
     if (select * from compra where nrotarjeta = filacompra.nrotarjeta 
-        and nrocomercio in(select distint nrocomercio from comercio where codigopostal != filacompra.codigopostal)
-        and (filacompra.fecha - fecha) < cincominuto).length > 1 then 
+        and nrocomercio in(select distinct nrocomercio from comercio where codigopostal != filacomercio.codigopostal)
+        and (select filacompra.fecha - fecha) < cincominuto).length > 1 then 
         
         insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
         values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
