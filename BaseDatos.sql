@@ -269,19 +269,16 @@ end;
 $$ language plpgsql;
 
 
-
 create or replace function func_alerta_rechazo() returns trigger as $$
 declare
-  
     undia timestamp := '2021-01-28'-'2021-01-27';
 begin
- 
     insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
     values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
 
-    if (select count(*) from rechazo where nrotarjeta = new.nrotarjeta 
+    if (select * from rechazo where nrotarjeta = new.nrotarjeta 
         and motivo = 'supera limite de tarjeta' 
-        and new.fecha - fecha < undia) > 1 then 
+        and (new.fecha - fecha) < undia).length > 1 then 
         
         update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
         
@@ -297,25 +294,35 @@ after insert on rechazo
 for each row
 execute procedure func_alerta_rechazo();
 
+
 create function func_alerta_compra() returns trigger as $$
 declare
     unminuto timestamp := '2021-01-28 01:01'-'2021-01-28 01:00';
     cincominutos timestamp := '2021-01-28 01:05'-'2021-01-28 01:00';
     filacompra record;
-    filacomercio record;
+    filacomercio record; 
 
 begin
     select * into filacompra from compra where nrotarjeta = new.nrotarjeta;
     select * into filacomercio from comercio where nrocomercio = new.nrocomercio;
 
-    if (select count(*) from compra where nrotarjeta = filacompra.nrotarjeta and nrocomercio in
-        (select distint nrocomercio from comercio where codigopostal = filacompra.codigopostal)
-        and new.fecha - fecha < unminuto) > 1 then 
+    if (select * from compra where nrotarjeta = filacompra.nrotarjeta 
+        and nrocomercio in(select distint nrocomercio from comercio where codigopostal = filacompra.codigopostal)
+        and (filacompra.fecha - fecha) < unminuto).length > 1 then 
         
         insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-        values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 1 ,'dos compras dentro del distrito en menos de un minuto');
+        values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
+    end if;
+    
+    if (select * from compra where nrotarjeta = filacompra.nrotarjeta 
+        and nrocomercio in(select distint nrocomercio from comercio where codigopostal != filacompra.codigopostal)
+        and (filacompra.fecha - fecha) < cincominuto).length > 1 then 
+        
+        insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+        values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
         
     end if;
+    return new;
 end;
 $$ language plpgsql;
 
