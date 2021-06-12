@@ -16,11 +16,48 @@
 
 El trabajo práctico solicita la creación de una base de datos para un sistema de tarjetas de crédito. 
 
-El sistema debe contar con un registro de compras realizadas con cada tarjeta. Cada tarjeta le pertenece a un cliente (a excepción de dos clientes que tendrán dos). Los clientes realizan compras en comercios a través de su tarjeta.
+El sistema debe contar con un registro de compras realizadas con cada tarjeta. Cada tarjeta le pertenece a un cliente (a excepción de dos clientes que tendrán dos). Los clientes realizan compran en comercios a través de su tarjeta.
 
 === Tarjetas de crédito
 
-Las tarjetas de crédito no tienen extensiones. Debe tener su fecha de validez inicial y final. También tiene un límite de compra y un estado (vigente, suspendida o anulada). Además, las tarjetas tienen
+Las tarjetas de crédito son el medio para realizar una compra. Las tarjetas de crédito no tienen extensiones. 
+Los usuaries no tienen permitido financiar sus compras en cuotas, todo en un solo pago. Una tarjeta de crédito puede ser suspendida
+si recibe dos rechazos por límite de compra en un mismo día.
+Además, las tarjetas presentan las siguientes características:
+
+* Número de tarjeta.
+* Número de cliente.
+* Tiempo inicial y final de validez.
+* Código de seguridad.
+* Límite de compra.
+* Estado de la tarjeta ("vigente", "suspendida", "anulada").
+
+
+
+=== Cliente
+
+Los clientes realizan compras con la tarjeta. Le cliente no puede tener más de una tarjeta.
+Un cliente es alertado por posibles fraudes tales como, realizar una compra en una lapso de tiempo muy bajo en diferentes
+ubicaciones (menos de un minuto si es en el mismo código postal, cinco minutos si es en diferentes códigos postales). 
+También un cliente es alertado si recibe dos rechazos de límite de compra en un mismo día, seguido de una suspensión preventiva de la tarjeta.
+
+Un cliente tiene las siguientes características:
+
+* Número de cliente.
+* Nombre y apellido.
+* Domicilio.
+* Teléfono
+
+=== Compra
+
+La compra se encarga de guardar los datos que implican dicha acción. Los datos son:
+
+* Número de operación.
+* Número de tarjeta.
+* Número de comercio.
+* Fecha de realización.
+* Monto.
+* Estado de la compra ("pagado" o "no pagado").
 
 == Desarrollo
 
