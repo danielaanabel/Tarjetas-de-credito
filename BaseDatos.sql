@@ -271,19 +271,19 @@ $$ language plpgsql;
 create or replace function func_alerta_rechazo() returns trigger as $$
 declare
     undia interval := '24:00:00';
+    i record;
 begin
     insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-    values(new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
+    values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
 
-    if (select * from rechazo where nrotarjeta = new.nrotarjeta 
-        and motivo = 'supera limite de tarjeta' 
-        and (new.fecha - fecha) < undia).length > 1 then 
-        
-        update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
-        
-        insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-        values(new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
-    end if;    
+    for i in select * from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' loop 
+        if (new.fecha - i.fecha) < undia then
+            update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
+            
+            insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+            values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+        end if; 
+    end loop;   
     return new;
 end;
 $$ language plpgsql;
@@ -297,36 +297,45 @@ execute procedure func_alerta_rechazo();
 create function func_alerta_compra() returns trigger as $$
 declare
     unminuto interval := '00:01:00';
-    cincominutos timestamp := '00:05:00';
-    filacompra record;
-    filacomercio record; 
+    cincominutos interval := '00:05:00';
+
+    i record;
+    j record;
 
 begin
-    select * into filacompra from compra where nrotarjeta = new.nrotarjeta;
-    select * into filacomercio from comercio where nrocomercio = new.nrocomercio;
+    if (select count(*) from compra where nrotarjeta = new.nrotarjeta) > 1 then
+            
+        for i in select * from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+            (select nrocomercio from comercio where nrocomercio != new.nrocomercio and codigopostal = 
+             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
 
-    if (select * from compra where nrotarjeta = filacompra.nrotarjeta 
-        and nrocomercio in(select distinct nrocomercio from comercio where codigopostal = filacomercio.codigopostal)
-        and (select filacompra.fecha - fecha) < unminuto).length > 1 then 
-        
-        insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-        values(new.nrotarjeta, new.tiempo, new.nrorechazo, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
-    end if;
-    
-    if (select * from compra where nrotarjeta = filacompra.nrotarjeta 
-        and nrocomercio in(select distinct nrocomercio from comercio where codigopostal != filacomercio.codigopostal)
-        and (select filacompra.fecha - fecha) < cincominuto).length > 1 then 
-        
-        insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-        values(new.nrotarjeta, new.tiempo, new.nrorechazo, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
-        
+            if (new.fecha - i.fecha) <= unminuto then
+            
+                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+                values(new.nrotarjeta, new.fecha, null, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
+         
+            end if;
+        end loop;
+
+               
+        for j in select fecha from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+            (select nrocomercio from comercio where codigopostal != 
+             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
+
+            if (new.fecha - j.fecha) <= cincominutos then
+
+                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+                values(new.nrotarjeta, new.fecha, null, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
+            
+            end if;
+        end loop;
     end if;
     return new;
 end;
 $$ language plpgsql;
 
 create trigger compra_trg
-before insert on compra
+after insert on compra
 for each row
 execute procedure func_alerta_compra();
 
