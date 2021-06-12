@@ -144,8 +144,8 @@ insert into tarjeta values('377829618815820', 20, '201804', '202303', '320', 900
 
 
 --comercios
-insert into comercio values(1, 'Coto', 'Belgrano 960', 'B1619JHU','034844458867');
-insert into comercio values(2, 'Sodimac','Constituyentes 1370','B1619HUU','112658423658');
+insert into comercio values(1, 'Coto', 'Belgrano 960', 'B1619JHU','034844458867');--comercios con el mismo CP
+insert into comercio values(2, 'Sodimac','Constituyentes 1370','B1619JHU','112658423658');--comercios con el mismo CP
 insert into comercio values(3, 'Buen Gusto', 'Av. Libertador 3072', 'C1245YTD','541126598965');
 insert into comercio values(4, 'Cafeteria Victor', 'Juan Gutierrez 1150', 'B1613GAE', '541178451245');
 insert into comercio values(5, 'Libreria Alondra', 'Mateo Churich 130', 'B1619JGB', '541125584518');
@@ -227,7 +227,7 @@ end loop;
 end;
 $$ language plpgsql;
 
-
+--función para autorizar las nuevas compras y tambien para autorizar consumos previos
 create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
 declare
     fecha_actual timestamp := current_timestamp(0);
@@ -240,7 +240,7 @@ begin
     end if;
     
     select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
-    if  not found then
+    if  not found then --si no existe la tarjeta
         insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
         return false;
     
@@ -268,6 +268,7 @@ begin
 end;
 $$ language plpgsql;
 
+--función del trigger cuando se produce un rechazo
 create or replace function func_alerta_rechazo() returns trigger as $$
 declare
     undia interval := '24:00:00';
@@ -293,7 +294,7 @@ before insert on rechazo
 for each row
 execute procedure func_alerta_rechazo();
 
-
+--función del trigger cuando se producen compras dudosas
 create function func_alerta_compra() returns trigger as $$
 declare
     unminuto interval := '00:01:00';
@@ -339,7 +340,7 @@ after insert on compra
 for each row
 execute procedure func_alerta_compra();
 
-
+--función para generar el resumen de les clientes
 create or replace function genera_resumen(num_cliente int, periodo char(8)) returns void as $$
 declare
     dato_cliente record;
@@ -401,7 +402,7 @@ declare
      fecha_actual date :=to_date(to_char(current_date,'YYYYMM'),'YYYYMM'); --extrae el año y mes de la fecha actual en formato date
      fecha_tarjeta date:=to_date(fecha_vencimiento, 'YYYYMM'); --extrae el año y mes de la fecha de vencimiento de la tarjeta en formato date
 begin
-     if (fecha_tarjeta <= fecha_actual) then
+     if (fecha_tarjeta <= fecha_actual) then --si la fecha es menor a la fecha actual esta vencida.
         return true;
      end if;
 return false;
