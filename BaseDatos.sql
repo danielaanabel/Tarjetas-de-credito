@@ -331,29 +331,72 @@ for each row
 execute procedure func_alerta_compra();
 
 
-create or replace function genera_resumen (num_cliente int, periodo char(2)) returns void as $$
+create or replace function genera_resumen(num_cliente int, periodo char(8)) returns void as $$
 declare
-    datos_cliente record;
+    dato_cliente record;
     tarjeta  record;
-    compras_cliente record;
-    datos_cierre record;
+    compra_cliente record;
+    dato_cierre record;
     num_periodo int := cast (periodo as int);
     fila record;
+    filatarjeta record;
     i int :=1;
-
 begin
-    tarjeta := select nrotarjeta from tarjeta where nrocliente = (select nrocliente from cliente where nrocliente = num_cliente);
-    datos_cierre := select* from cierre where (
-        terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer));
-    compras_cliente := select * from compra where (nrotarjeta =tarjeta AND (
-        (EXTRACT(ISOMONTH FROM fecha)= num_periodo AND EXTRACT(ISODAY FROM fecha)<27) 
-            OR (EXTRACT(ISOMONTH FROM fecha)= num_periodo + 1 AND EXTRACT(ISODAY FROM fecha)>28)));
+    insert into dato_cliente values(
+        select nrocliente from cliente where (nrocliente = num_cliente), 
+        select nombre from cliente where nrocliente = num_cliente, 
+        select apellido from cliente where nrocliente = num_cliente, 
+        select domicilio from cliente where nrocliente = num_cliente, 
+        select telefono from cliente where nrocliente = num_cliente
+    );
+    insert into tarjeta values(
+        select nrotarjeta from tarjeta where nrocliente = (select nrocliente from datos_cliente),
+        select nrocliente from tarjeta where nrocliente = (select nrocliente from datos_cliente),
+        select validadesde from tarjeta where nrocliente = (select nrocliente from datos_cliente), 
+        select validahasta from tarjeta where nrocliente = (select nrocliente from datos_cliente),
+        select codseguridad from tarjeta where nrocliente = (select nrocliente from datos_cliente),
+        select limitecompra from tarjeta where nrocliente = (select nrocliente from datos_cliente),
+        select estado from tarjeta where nrocliente = (select nrocliente from datos_cliente)
 
-    insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total) values (
-    select nombre from cliente where nrocliente = num_cliente, select apellido from cliente where nrocliente = num_cliente, 
-    select domicilio from cliente where nrocliente = num_cliente, 
-    tarjeta, select fechainicio from datos_cierre, select fechacierre from datos_cierre, 
-    select fechavto from datos_cierre, select sum (monto) from compras_cliente);
+    );
+    insert into dato_cierre values(
+        select año from cierre where (
+            terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer)), 
+        select mes from cierre where (
+            terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer)),
+        select terminacion from cierre where (
+            terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer)), 
+        select fechainicio from cierre where (
+            terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer)),
+        select fechacierre from cierre where (
+            terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer)),
+        select fechavto from cierre where (
+            terminacion = cast (substr(tarjeta,length(tarjeta),length(nombre_lugar)) from tarjeta as integer))
+    );
+    insert into compra_cliente (nrotarjeta, nrocomercio, fecha, monto, pagado) values(
+        (select nrotarjeta from nrotarjeta =tarjeta) where ((
+        extract(month FROM fecha)= num_periodo AND extract(day FROM fecha)<27) 
+        OR extract(month FROM fecha)= num_periodo + 1 AND extract(day FROM fecha)>28), 
+        (select nrocomercio from nrotarjeta =tarjeta) where ((
+        extract(month FROM fecha)= num_periodo AND extract(day FROM fecha)<27) 
+        OR extract(month FROM fecha)= num_periodo + 1 AND extract(day FROM fecha)>28), 
+        (select fecha from nrotarjeta =tarjeta) where ((
+        extract(month FROM fecha)= num_periodo AND extract(day FROM fecha)<27) 
+        OR extract(month FROM fecha)= num_periodo + 1 AND extract(day FROM fecha)>28);
+        (select monto from nrotarjeta =tarjeta) where ((
+        EXTRACT(month FROM fecha)= num_periodo AND EXTRACT(day FROM fecha)<27) 
+        OR EXTRACT(month FROM fecha)= num_periodo + 1 AND EXTRACT(day FROM fecha)>28);
+        (select pagado from nrotarjeta =tarjeta) where ((
+        EXTRACT(month FROM fecha)= num_periodo AND EXTRACT(day FROM fecha)<27) 
+        OR EXTRACT(month FROM fecha)= num_periodo + 1 AND EXTRACT(day FROM fecha)>28);
+    );
+    for filatarjeta in select * from tarjeta loop
+        insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total) values (
+            select nombre from datos_cliente, select apellido from datos_cliente, select domicilio from datos_cliente, 
+            tarjeta, select fechainicio from datos_cierre, select fechacierre from datos_cierre, 
+            select fechavto from datos_cierre, select sum (monto) from compras_cliente
+        );
+    end loop;
 
     for fila in select * from compras_cliente loop
 
