@@ -228,36 +228,36 @@ end;
 $$ language plpgsql;
 
 
-create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(7,2)) returns boolean as $$
+create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
 declare
-    fecha_actual timestamp := current_timestamp(2); --fecha actual 
+    fecha_actual timestamp := current_timestamp(0);
     tarjeta record;
-
+    monto_total decimal:= p_monto;
 begin
+
+    if ((SELECT count(*) FROM compra where nrotarjeta = nro_tarjeta ) > 0) then --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
+        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta); --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
+    end if;
+    
     select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
     if  not found then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
-        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
         return false;
     
-    elsif cod_seguridad != fila.codseguridad then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
-        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+    elsif cod_seguridad != tarjeta.codseguridad then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
         return false;
     
-    elsif select ((select sum(monto) from compra where nrotarjeta = nro_tarjeta)+ p_monto) > fila.limitecompra then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
-        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
+    elsif (monto_total > tarjeta.limitecompra) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
         return false;
     
-    elsif (select verificar_vigencia((fila.validahasta))) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
-        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+    elsif (select verificar_vigencia((tarjeta.validahasta))) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
         return false;
 
-    elsif 'suspendida' = (fila.estado) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
-        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+    elsif 'suspendida' = (tarjeta.estado) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
         return false;
 
     else
@@ -267,7 +267,6 @@ begin
     end if;
 end;
 $$ language plpgsql;
-
 
 create or replace function func_alerta_rechazo() returns trigger as $$
 declare
@@ -290,7 +289,7 @@ end;
 $$ language plpgsql;
 
 create trigger rechazo_trg
-after insert on rechazo
+before insert on rechazo
 for each row
 execute procedure func_alerta_rechazo();
 
