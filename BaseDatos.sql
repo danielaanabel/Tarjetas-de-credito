@@ -235,7 +235,7 @@ declare
     monto_total decimal:= p_monto;
 begin
 
-    if ((SELECT count(*) FROM compra where nrotarjeta = nro_tarjeta ) > 0) then --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
+    if ((select count(*) from compra where nrotarjeta = nro_tarjeta ) > 0) then --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
         monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta); --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
     end if;
     
@@ -326,7 +326,7 @@ end;
 $$ language plpgsql;
 
 create trigger compra_trg
-after insert on compra
+before insert on compra
 for each row
 execute procedure func_alerta_compra();
 
