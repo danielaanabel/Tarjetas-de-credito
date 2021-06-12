@@ -274,14 +274,14 @@ declare
     i record;
 begin
     insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-    values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
+    values(new.nrotarjeta, new.fecha, new.nrorechazo, 0, 'se produjo un rechazo');
 
     for i in select * from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' loop 
         if (new.fecha - i.fecha) < undia then
             update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
             
             insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-            values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+            values(new.nrotarjeta, new.fecha, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
         end if; 
     end loop;   
     return new;
