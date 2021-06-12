@@ -102,6 +102,8 @@ alter table cabecera add constraint cabecera_pk primary key (nroresumen);
 alter table detalle  add constraint detalle_pk  primary key (nroresumen, nrolinea);
 alter table alerta   add constraint alerta_pk   primary key (nroalerta);
 
+alter table tarjeta  add constraint tarjeta_nrocliente_fk  foreign key (nrocliente)  references cliente(nrocliente);
+
 alter table compra   add constraint compra_nrotarjeta_fk   foreign key (nrotarjeta)  references tarjeta(nrotarjeta);
 alter table compra   add constraint compra_nrocomercio_fk  foreign key (nrocomercio) references comercio(nrocomercio);
 
