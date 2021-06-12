@@ -273,7 +273,7 @@ declare
     undia interval := '24:00:00';
 begin
     insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-    values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
+    values(new.nrotarjeta, new.tiempo, new.nrorechazo, 0, 'se produjo un rechazo');
 
     if (select * from rechazo where nrotarjeta = new.nrotarjeta 
         and motivo = 'supera limite de tarjeta' 
@@ -282,7 +282,7 @@ begin
         update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
         
         insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-        values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+        values(new.nrotarjeta, new.tiempo, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
     end if;    
     return new;
 end;
@@ -310,7 +310,7 @@ begin
         and (select filacompra.fecha - fecha) < unminuto).length > 1 then 
         
         insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-        values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
+        values(new.nrotarjeta, new.tiempo, new.nrorechazo, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
     end if;
     
     if (select * from compra where nrotarjeta = filacompra.nrotarjeta 
@@ -318,7 +318,7 @@ begin
         and (select filacompra.fecha - fecha) < cincominuto).length > 1 then 
         
         insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-        values(nro_alerta, new.nrotarjeta, new.tiempo, new.nrorechazo, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
+        values(new.nrotarjeta, new.tiempo, new.nrorechazo, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
         
     end if;
     return new;
