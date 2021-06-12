@@ -65,9 +65,9 @@ Además se muestran los problemas encontrados con sus respectivas soluciones.
 
 == Desarrollo
 
-El sistema fue construido con los lenguajes Go y Pl/pgSQL. El modelo de datos relativa a tarjetas de créditos son almacenadas en
-PostgreSQL. Por último, en BoltDB se guardan datos de clientes, comercios, tarjetas y compras para comparar el modelo relacional
-con un modelo relacional (NoSQL).
+El sistema fue construido con los lenguajes Go y Pl/pgSQL. El modelo de datos relativa a tarjetas de créditos son almacenadas en 
+la base de datos relacional PostgreSQL. Por último, en BoltDB se guardan datos de clientes, comercios,
+ tarjetas y compras para comparar el modelo relacional con un modelo relacional (NoSQL).
 
 === Pl/pgsSQL
 
