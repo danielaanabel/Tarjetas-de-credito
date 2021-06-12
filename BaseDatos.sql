@@ -364,9 +364,13 @@ declare
 begin
 
     --Se guardan datos del cliente 
-    for fila in select * from cliente loop
-        if (num_cliente = fila.nrocliente) then
-            insert into dato_cliente(nombre, apellido, domicilio) values(fila.nombre, fila.apellido, fila.domicilio);
+    for dato_cliente in select * from cliente loop
+        if (num_cliente = (select dato_cliente.nrocliente)) then
+            dato_cliente.nrocliente = nrocliente,
+            dato_cliente.nombre =nombre;
+            dato_cliente.apellido =apellido,
+            dato_cliente.domicilio =domicilio;
+            dato_cliente.telefono = telefono;
         end if;
     end loop;
 
@@ -374,8 +378,8 @@ begin
     for tarjetacliente in select * from tarjeta loop
         if (num_cliente = (select nrocliente from tarjeta)) then
         --if (num_cliente = tarjeta.nrocliente) then
-            tarjetacliente.nrotarjeta :=nrotarjeta;
-            tarjetacliente.nrocliente :=nrocliente;
+            tarjetacliente.nrotarjeta =nrotarjeta;
+            tarjetacliente.nrocliente =nrocliente;
         end if;
     end loop;
 
@@ -383,14 +387,14 @@ begin
     for dato_cierre in select * from cierre loop
         for fila in select * from tarjetacliente loop
             if (terminacion = cast (substr(tarjetacliente.nrotarjeta,length(tarjetacliente.nrotarjeta),length(nombre_lugar)) as integer)) then
-                dato_cierre.nrotarjeta := tarjetacliente.nrotarjeta;
-                dato_cierre.año :=año;
-                dato_cierre.mes :=mes;
-                dato_cierre.terminacion :=terminacion;
-                dato_cierre.fechainicio :=fechainicio;
-                dato_cierre.fechacierre :=fechacierre;
-                dato_cierre.fechavto :=fechavto;
-        end if;
+                dato_cierre.nrotarjeta = tarjetacliente.nrotarjeta;
+                dato_cierre.año =año;
+                dato_cierre.mes =mes;
+                dato_cierre.terminacion =terminacion;
+                dato_cierre.fechainicio =fechainicio;
+                dato_cierre.fechacierre =fechacierre;
+                dato_cierre.fechavto =fechavto;
+            end if;
         end loop;
     end loop;
 
@@ -400,11 +404,11 @@ begin
             if (dato_cierre.nrotarjeta = compra.nrotarjeta AND ( (
                     extract(month FROM fecha)= num_periodo AND extract(day FROM fecha)<27) 
                     OR (extract(month FROM fecha)= num_periodo + 1 AND extract(day FROM fecha)>28) )) then
-                compra_cliente.nrotarjeta :=dato_cierre.nrotarjeta;
-                compra_cliente.nrocomercio :=nrocomercio;
-                compra_cliente.fecha :=fecha;
-                compra_cliente.monto :=monto;
-                compra_cliente.pagado :=pagado;
+                compra_cliente.nrotarjeta =dato_cierre.nrotarjeta;
+                compra_cliente.nrocomercio =nrocomercio;
+                compra_cliente.fecha =fecha,
+                compra_cliente.monto =monto;
+                compra_cliente.pagado =pagado;
         end if;
         end loop;
     end loop;
@@ -413,10 +417,10 @@ begin
     for compra_comercio in select * from comercio loop
         for filat in select * from compra_cliente loop
             if ((comercio.nrocomercio = compra_cliente.nrocomercio) AND (NOT compra_cliente)) then
-                compra_comercio.nrotarjeta := compra_cliente.nrotarjeta;
-                compra_comercio.nombre :=comercio.nombre;
-                compra_comercio.fecha :=compra_cliente.fecha;
-                compra_comercio.monto :=compra_cliente.monto;
+                compra_comercio.nrotarjeta = compra_cliente.nrotarjeta;
+                compra_comercio.nombre =comercio.nombre;
+                compra_comercio.fecha =compra_cliente.fecha;
+                compra_comercio.monto =compra_cliente.monto;
             end if;
         end loop;
     end loop;
@@ -431,9 +435,8 @@ begin
             insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
                 values (dato_cliente.nombre, dato_cliente.apellido, dato_cliente.direccion,  
                 dato_cierre.nrotarjeta, dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto,
-                total 
+                total
                 --select sum (compra_comercio.monto) from compra_comercio
-            
             );
             nresumen := cabecera.nroresumen;
             for filap in select * from compras_comercio loop
