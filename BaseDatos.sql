@@ -350,47 +350,71 @@ declare
     dato_comercio record;
     num_periodo int := cast (periodo as int);
     fila record;
+    filap record;
+    filas record;
+    filat record;
     filatarjeta record;
     i int :=1;
+    j int :=1;
 begin
-   for dato_cliente in select * from cliente loop
+
+    --Se guardan datos del cliente ME IMPORTA
+    for dato_cliente in select * from cliente loop
         if (nrocliente = num_cliente) then
             dato_cliente.nombre :=nombre;
             dato_cliente.apellido := apellido;
             dato_cliente.domicilio := domicilio;
         end if;
     end loop;
-for tarjetacliente in select * from tarjeta loop
+
+    --Se guardan las tarjetas del cliente
+    for tarjetacliente in select * from tarjeta loop
         if (nrocliente = (select nrocliente from datos_cliente)) then
             tarjetacliente.nrotarjeta :=nrotarjeta;
             tarjetacliente.nrocliente :=nrocliente;
         end if;
     end loop;
 
+    --Se guardan los datos de cada tarjeta ME IMPORTA
     for dato_cierre in select * from cierre loop
-        if (terminacion = cast (substr(tarjetacliente,length(tarjetacliente),length(nombre_lugar)) from tarjetacliente) as integer) then
-            dato_cierre.año :=año;
-            dato_cierre.mes :=mes;
-            dato_cierre.terminacion :=terminacion;
-            dato_cierre.fechainicio :=fechainicio;
-            dato_cierre.fechacierre :=fechacierre;
-            dato_cierre.fechavto :=fechavto;
+        for fila in select * from tarjetacliente loop
+            if (terminacion = cast (substr(tarjetacliente.nrotarjeta,length(tarjetacliente.nrotarjeta),length(nombre_lugar))) as integer) then
+                dato_cierre.nrotarjeta := tarjetacliente.nrotarjeta;
+                dato_cierre.año :=año;
+                dato_cierre.mes :=mes;
+                dato_cierre.terminacion :=terminacion;
+                dato_cierre.fechainicio :=fechainicio;
+                dato_cierre.fechacierre :=fechacierre;
+                dato_cierre.fechavto :=fechavto;
         end if;
+        end loop;
     end loop;
 
+    --Se guardan las compras
     for compra_cliente in select * from compra loop
-        if (tarjetacliente.nrotarjeta := nrotarjeta) then
-            compra_cliente.nrocomercio :=nrocomercio;
-            compra_cliente.fecha :=fecha;
-            compra_cliente.monto :=monto;
-            compra_cliente.pagado :=pagado;
+        for filas in select * from dato_cierre loop
+            if (dato_cierre.nrotarjeta = compra.nrotarjeta AND ( (
+                    extract(month FROM fecha)= num_periodo AND extract(day FROM fecha)<27) 
+                    OR (extract(month FROM fecha)= num_periodo + 1 AND extract(day FROM fecha)>28) )) then
+                compra_cliente.nrotarjeta :=dato_cierre.nrotarjeta;
+                compra_cliente.nrocomercio :=nrocomercio;
+                compra_cliente.fecha :=fecha;
+                compra_cliente.monto :=monto;
+                compra_cliente.pagado :=pagado;
         end if;
+        end loop;
     end loop;
 
+    --SE guardan los nombres del comercio ME IMPORTA
     for compra_comercio in select * from comercio loop
-        if (compra_cliente.nrocomercio := nrocomercio) then
-            compra_comercio.nombre :=nombre;
-        end if;
+        for filat in select * from compra_cliente loop
+            if ((comercio.nrocomercio = compra_cliente.nrocomercio) AND (NOT compra_cliente)) then
+                compra_comercio.nrotarjeta := compra_cliente.nrotarjeta;
+                compra_comercio.nombre :=comercio.nombre;
+                compra_comercio.fecha :=compra_cliente.fecha;
+                compra_comercio.monto :=compra_cliente.monto;
+            end if;
+        end loop;
     end loop;
 
 end;
