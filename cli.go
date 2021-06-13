@@ -150,6 +150,7 @@ func crear_todas_las_funciones(){
 	crear_verificar_vigencia()
 	crear_genera_resumen()
 	crear_funcierre()
+	crear_func_alerta_rechazo()
 	
 	
 }
@@ -246,6 +247,45 @@ if err != nil{
 
 	fmt.Println("funcion creada")
 
+	
+}
+
+
+
+//Funcion func_alerta_rechazo que se guarda en la base de datos-------------------------------------------------------
+
+func crear_func_alerta_rechazo(){
+
+	db := conectar_con_bdd()
+	
+	_,err:= db.Exec(`create or replace function func_alerta_rechazo() returns trigger as $$
+declare
+    undia interval := '24:00:00';
+    i record;
+begin
+    insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+    values(new.nrotarjeta, new.fecha, new.nrorechazo, 0, 'se produjo un rechazo');
+
+    for i in select * from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' loop 
+        if (new.fecha - i.fecha) < undia then
+            update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
+            
+            insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+            values(new.nrotarjeta, new.fecha, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+        end if; 
+    end loop;   
+    return new;
+end;
+$$ language plpgsql;
+
+create trigger rechazo_trg
+before insert on rechazo
+for each row
+execute procedure func_alerta_rechazo();`)
+	
+	if err != nil{
+			log.Fatal(err)
+	}
 	
 }
 
