@@ -232,6 +232,33 @@ $$ language plpgsql;`)
 
 }
 
+
+
+//Funcion verificar_vigencia que se guarda en la base de datos----------------------------------------------
+
+func crear_verificar_vigencia(){
+	
+	db := conectar_con_bdd()
+	
+	_,err := db.Exec(`create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
+declare
+     fecha_actual date :=to_date(to_char(current_date,'YYYYMM'),'YYYYMM'); 
+     fecha_tarjeta date:=to_date(fecha_vencimiento, 'YYYYMM'); 
+begin
+     if (fecha_tarjeta <= fecha_actual) then 
+        return true;
+     end if;
+return false;
+end;
+$$ language plpgsql;`)
+	
+	if err != nil {
+			log.Fatal(err)
+	}
+	
+}
+
+
 //Funcion que llama a la funcion de realizar compras que esta en la base de datos---------------------------
 func realizar_compras(){
 
