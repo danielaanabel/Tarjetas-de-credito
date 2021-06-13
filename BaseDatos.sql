@@ -383,51 +383,56 @@ begin
         nrocliente int
     );
 alter table tarjetacliente  add constraint tarjetacliente_pk  primary key (nrotarjeta);
-    insert into tarjetacliente select cliente.nrotarjeta, cliente.nrocliente from cliente 
+    insert into tarjetacliente select tarjeta.nrotarjeta, tarjeta.nrocliente from tarjeta 
     where (num_cliente = tarjeta.nrocliente);
 end;
 $$ language plpgsql;
 
---Función auxiliar que guarda los datos de la tarjeta en la tabla dato_cierre
+--Función auxiliar que guarda los datos de la tarjeta en la tabla dato_cierre-- cambio nombres CAMBIAR EN LAS OTRAS
+--PROBLEMA- ME SALTABA ERROR PORQUE SE MENCIONABA A VARIABLES CON EL MISMO NOMBRE DE DISTINTAS TABLAS
 create or replace function guarda_datos_tarjeta() returns 
-table (nrocliente int, nombre text, apellido text, domicilio text ) as $$
+table (ntarjeta char(16), ncliente int, naño int, nmes int, nterminacion int, ffechainicio date, ffechacierre date,
+    fechavto date) as $$
 declare
-    nrotarjeta char(16);
-    año int;
-    mes int;
-    terminacion int;
-    fechainicio date;
-    fechacierre date;
-    fechavto date;
+    ntarjeta char(16);
+    ncliente int;
+    naño int;
+    nmes int;
+    nterminacion int;
+    ffechainicio date;
+    ffechacierre date;
+    ffechavto date;
     fila_a record;
     fila_b record;
 begin
     create table dato_cierre (
-        nrotarjeta char(16),
-        año int,
-        mes int,
-        terminacion int,
-        fechainicio date,
-        fechacierre date,
-        fechavto date
+        ntarjeta char(16),
+        ncliente int,
+        naño int,
+        nmes int,
+        nterminacion int,
+        ffechainicio date,
+        ffechacierre date,
+        ffechavto date
     );
-alter table dato_cierre  add constraint dato_cierre_pk  primary key (año, mes, terminacion);
+    --SALTA ERROR PORQUE SE USAN NOMBRES "AMBIGÜOS"
+alter table dato_cierre  add constraint dato_cierre_pk  primary key (naño, nmes, nterminacion);
     for fila_a in select * from cierre loop
         for fila_b in select * from tarjetacliente loop
-                insert into dato_cierre select nrotarjeta, año, mes, terminacion,
-                fecha_inicio, fecha_cierre, fechavto from (select * from tarjetacliente, cierre) as dato_cierre
-                where (terminacion = cast (substr (tarjetacliente.nrotarjeta, length(tarjetacliente.nrotarjeta) , 
-                length(tarjetacliente.nrotarjeta) ) as integer));
+                insert into dato_cierre select nrotarjeta, nrocliente, año, mes, 
+                terminacion, fechainicio, fechacierre, cierrefechavto from (select * from tarjetacliente, cierre) as dato_cierre
+                where (cierre.terminacion = cast (substr (tarjetacliente.nrotarjeta, length(tarjetacliente.nrotarjeta), 
+                length(tarjetacliente.nrotarjeta)) as int));
         end loop;
     end loop;
 end;
 $$ language plpgsql;
 
---guardando compras TIRA ERROR: Nro de comercio
-create or replace function guarda_compras(numperiodo char(2)) returns 
+--guardando compras en la tabla compra_cliente
+create or replace function guarda_compras(numperiodo text) returns 
 table (nrotarjeta char(16), nrocomercio int, fecha timestamp, monto decimal (7,2), pagado boolean) as $$
 declare
-    nrotarjeta char(16);
+    nrotarjeta text;
     nrocomercio int; 
     fecha timestamp; 
     monto decimal (7,2); 
@@ -445,17 +450,17 @@ begin
     alter table compra_cliente  add constraint compra_cliente_pk  primary key (nrotarjeta);
     for fila in select * from compra loop
         for filas in select * from dato_cierre loop
-            insert into compra_cliente select dato_cierre.nrotarjeta, compra.nrocomercio, fecha, monto, pagado from 
+            insert into compra_cliente select dato_cierre.ntarjeta, compra.nrocomercio, fecha, monto, pagado from 
             (select * from dato_cierre, compra) as compra_cliente 
-            where (dato_cierre.nrotarjeta = compra.nrotarjeta AND ((
-                    extract(month FROM fecha)= numperiodo AND extract(day FROM fecha)<27) 
-                    OR (extract(month FROM fecha)= numperiodo + 1 AND extract(day FROM fecha)>28)));
+            where (dato_cierre.ntarjeta = compra.nrotarjeta AND ((
+                    cast(extract(month FROM fecha) as int) = numperiodo AND cast(extract(day FROM fecha) as int) <27) 
+                    OR (cast(extract(month FROM fecha) as int) = numperiodo + 1 AND cast(extract(day FROM fecha)>28 as int))));
         end loop;
     end loop;
 end;
 $$ language plpgsql;
 
---Guardando nombres de comercio y datos de la compra SALE EL MISMO ERROR ANTERIOR
+--Guardando nombres de comercio y datos de la compra
 
 create or replace function guarda_comercios() returns 
 table (nrotarjeta char(16), nombre text, fecha timestamp, monto decimal(7,2)) as $$
@@ -480,16 +485,28 @@ $$ language plpgsql;
 
 
 
+----total de una tarjeta dada
+create or replace function total_tarjeta(nrotarjeta char(16)) returns decimal(8,2) as $$
+declare
+    fila record;
+    total decimal(8,2) :=0;
+begin
+    for fila in select * from compra_comercio loop
+        total := total + (select sum (monto) from compra_comercio where compra_comercio.nrotarjeta = nrotarjeta);
+    end loop;
+    return total;
+end;
+$$ language plpgsql;
+
+
 --Genera resumen
-create or replace function genera_resumen(num_cliente int, periodo char(2)) returns void as $$
+create or replace function genera_resumen(num_cliente int, periodo text) returns void as $$
 declare
     num_periodo int := cast (periodo as int);
     fila record;
     filap record;
-    filas record;
-    filat record;
-    filac record;
     filad record;
+    filae record;
     total decimal (8,2);
     nresumen int;
     i int :=1;
@@ -498,31 +515,27 @@ begin
     select guarda_cliente(num_cliente);
     select guarda_tarjeta(dato_cliente.nrocliente);
     select guarda_datos_tarjeta();
-    select guarda_compras();
     select guarda_compras(num_periodo);
     select guarda_comercios();
 
-    total := select sum (compra_comercio.monto) from compra_comercio;
-
-    --Inserta los datos en la tabla cabecera y detalle
+    
+ 
+    --Inserta los datos en la tabla cabecera y detalle 
     for fila in select * from dato_cliente loop
         for filad in select * from dato_cierre loop
             insert into cabecera select dato_cliente.nombre, dato_cliente.apellido, dato_cliente.direccion,  
-                dato_cierre.nrotarjeta, dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total
-                total from (select * from dato_cliente, dato_cierre) as cabecera 
-            );
-            nresumen := cabecera.nroresumen;
+                dato_cierre.nrotarjeta, dato_cierre.fechainicio, dato_cierre.fechacierre, 
+                dato_cierre.fechavto, total_tarjeta(dato_cierre.nrotarjeta)
+                from (select * from dato_cliente, dato_cierre) as cabecera where dato_cliente.nrocliente=dato_cierre.nrocliente; 
+            nresumen := (select nroresumen from cabecera where cabecera.nrotarjeta=dato_cliente.nrotarjeta);
             for filap in select * from compras_comercio loop
-                if (dato_cierre.nrotarjeta = compra_comercio.nrotarjeta) then
                     insert into detalle select nresumen, i, fecha, compra_comercio.fecha, compra_comercio.nombre, 
-                    compra_comercio.monto from compras_comercio;
-                    );
+                    compra_comercio.monto from compras_comercio where dato_cierre.nrotarjeta = compra_comercio.nrotarjeta;
                     i := i+1;
-                end if;
             end loop;
         end loop;
     end loop;
-
+    
 
 end;
 $$ language plpgsql;
