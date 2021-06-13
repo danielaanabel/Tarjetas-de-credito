@@ -88,8 +88,8 @@ Para autorizar una compra la función controla que se cumplan los siguientes req
  que se pedía, pero no funcionó. Luego se optó por obtener todas las fechas de la tarjeta que se necesitaba en un record y 
  hacerle un for para obtener cada fecha y comparar.
 
-* Cuando se estaba haciendo el trigger de compras, que pasar hacer insert en la tabla _alerta_, como se necesita un _nrorechazo_ y 
-el trigger se activaba cuando se reliza una compra y no un rechazo, no teníamos el dato. Se solucionó dejándolo en null.
+* Cuando se estaba haciendo el trigger de compras, a la hora de hacer el insert en la tabla _alerta_, nos dimos cuanta que no 
+teníamos el dato del _nrorechazo_ porque el trigger se activaba cuando se reliza una compra y no un rechazo, lo cual daba error. Se solucionó dejándolo en null.
 
 * Otro problema encontrado fue a la hora de realizar la suma de las compras para autorizar la nueva compra, no estábamos 
 verificando que el valor del campo _monto_ se encuentre vacío y entonces tiraba error a la hora de calcular la suma total de 
