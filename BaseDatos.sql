@@ -351,107 +351,171 @@ after insert on compra
 for each row
 execute procedure func_alerta_compra();
 
---función para generar el resumen de les clientes
-create or replace function genera_resumen(num_cliente int, periodo char(8)) returns void as $$
+--Función auxiliar que guarda en la tabla dato_cliente la info del cliente
+create or replace function guarda_cliente(num_cliente int) returns 
+table (nrocliente int, nombre text, apellido text, domicilio text ) as $$
 declare
-    dato_cliente record;
-    tarjetacliente  record;
-    compra_cliente record;
-    dato_cierre record;
-    compra_comercio record;
+nrocliente int;
+nombre text; 
+apellido text; 
+domicilio text;
+begin
+    create table dato_cliente (
+        nrocliente int,
+        nombre text, 
+        apellido text, 
+        domicilio text
+    );
+alter table dato_cliente  add constraint dato_cliente_pk  primary key (nrocliente);
+    insert into dato_cliente select cliente.nrocliente, cliente.nombre, cliente.apellido, cliente.domicilio from cliente where (num_cliente = (select cliente.nrocliente));
+end;
+$$ language plpgsql;
+
+--Función auxiliar que guarda en la tabla 
+create or replace function guarda_tarjeta(num_cliente int) returns 
+table (nrotarjeta char(16), nrocliente int) as $$
+declare
+    nrotarjeta char(16);
+    nrocliente int;
+begin
+    create table tarjetacliente (
+        nrotarjeta char(16),
+        nrocliente int
+    );
+alter table tarjetacliente  add constraint tarjetacliente_pk  primary key (nrotarjeta);
+    insert into tarjetacliente select cliente.nrotarjeta, cliente.nrocliente from cliente 
+    where (num_cliente = tarjeta.nrocliente);
+end;
+$$ language plpgsql;
+
+--Función auxiliar que guarda los datos de la tarjeta en la tabla dato_cierre
+create or replace function guarda_datos_tarjeta() returns 
+table (nrocliente int, nombre text, apellido text, domicilio text ) as $$
+declare
+    nrotarjeta char(16);
+    año int;
+    mes int;
+    terminacion int;
+    fechainicio date;
+    fechacierre date;
+    fechavto date;
+    fila_a record;
+    fila_b record;
+begin
+    create table dato_cierre (
+        nrotarjeta char(16),
+        año int,
+        mes int,
+        terminacion int,
+        fechainicio date,
+        fechacierre date,
+        fechavto date
+    );
+alter table dato_cierre  add constraint dato_cierre_pk  primary key (año, mes, terminacion);
+    for fila_a in select * from cierre loop
+        for fila_b in select * from tarjetacliente loop
+                insert into dato_cierre select nrotarjeta, año, mes, terminacion,
+                fecha_inicio, fecha_cierre, fechavto from (select * from tarjetacliente, cierre) as dato_cierre
+                where (terminacion = cast (substr (tarjetacliente.nrotarjeta, length(tarjetacliente.nrotarjeta) , 
+                length(tarjetacliente.nrotarjeta) ) as integer));
+        end loop;
+    end loop;
+end;
+$$ language plpgsql;
+
+--guardando compras TIRA ERROR: Nro de comercio
+create or replace function guarda_compras(numperiodo char(2)) returns 
+table (nrotarjeta char(16), nrocomercio int, fecha timestamp, monto decimal (7,2), pagado boolean) as $$
+declare
+    nrotarjeta char(16);
+    nrocomercio int; 
+    fecha timestamp; 
+    monto decimal (7,2); 
+    pagado boolean;
+    fila record;
+    filas record;
+begin
+    create table compra_cliente (
+        nrotarjeta char(16),
+        nrocomercio int, 
+        fecha timestamp, 
+        monto decimal (7,2), 
+        pagado boolean
+    );
+    alter table compra_cliente  add constraint compra_cliente_pk  primary key (nrotarjeta);
+    for fila in select * from compra loop
+        for filas in select * from dato_cierre loop
+            insert into compra_cliente select dato_cierre.nrotarjeta, compra.nrocomercio, fecha, monto, pagado from 
+            (select * from dato_cierre, compra) as compra_cliente 
+            where (dato_cierre.nrotarjeta = compra.nrotarjeta AND ((
+                    extract(month FROM fecha)= numperiodo AND extract(day FROM fecha)<27) 
+                    OR (extract(month FROM fecha)= numperiodo + 1 AND extract(day FROM fecha)>28)));
+        end loop;
+    end loop;
+end;
+$$ language plpgsql;
+
+--Guardando nombres de comercio y datos de la compra SALE EL MISMO ERROR ANTERIOR
+
+create or replace function guarda_comercios() returns 
+table (nrotarjeta char(16), nombre text, fecha timestamp, monto decimal(7,2)) as $$
+declare
+    nrotarjeta char(16);
+    nombre text; 
+    fecha timestamp; 
+    monto decimal(7,2);
+begin
+    create table compra_comercio (
+        nrotarjeta char(16),
+        nombre text, 
+        fecha timestamp, 
+        monto decimal(7,2)
+    );
+    alter table compra_comercio add constraint compra_comercio_pk  primary key (fecha);
+    insert into compra_comercio select nrotarjeta, nombre, fecha, monto from 
+            (select * from comercio, compra_cliente) as compra_comercio 
+            where ((comercio.nrocomercio = compra_cliente.nrocomercio) AND (NOT compra_cliente));
+end;
+$$ language plpgsql;
+
+
+
+--Genera resumen
+create or replace function genera_resumen(num_cliente int, periodo char(2)) returns void as $$
+declare
     num_periodo int := cast (periodo as int);
     fila record;
     filap record;
     filas record;
     filat record;
     filac record;
-    filaz record;
+    filad record;
     total decimal (8,2);
     nresumen int;
     i int :=1;
     j int :=1;
 begin
+    select guarda_cliente(num_cliente);
+    select guarda_tarjeta(dato_cliente.nrocliente);
+    select guarda_datos_tarjeta();
+    select guarda_compras();
+    select guarda_compras(num_periodo);
+    select guarda_comercios();
 
-    --Se guardan datos del cliente 
-    for dato_cliente in select * from cliente loop
-        if (num_cliente = (select dato_cliente.nrocliente)) then
-            dato_cliente.nrocliente = nrocliente,
-            dato_cliente.nombre =nombre;
-            dato_cliente.apellido =apellido,
-            dato_cliente.domicilio =domicilio;
-            dato_cliente.telefono = telefono;
-        end if;
-    end loop;
-
-    --Se guardan las tarjetas del cliente
-    for tarjetacliente in select * from tarjeta loop
-        if (num_cliente = (select nrocliente from tarjeta)) then
-        --if (num_cliente = tarjeta.nrocliente) then
-            tarjetacliente.nrotarjeta =nrotarjeta;
-            tarjetacliente.nrocliente =nrocliente;
-        end if;
-    end loop;
-
-    --Se guardan los datos de cada tarjeta 
-    for dato_cierre in select * from cierre loop
-        for fila in select * from tarjetacliente loop
-            if (terminacion = cast (substr(tarjetacliente.nrotarjeta,length(tarjetacliente.nrotarjeta),length(nombre_lugar)) as integer)) then
-                dato_cierre.nrotarjeta = tarjetacliente.nrotarjeta;
-                dato_cierre.año =año;
-                dato_cierre.mes =mes;
-                dato_cierre.terminacion =terminacion;
-                dato_cierre.fechainicio =fechainicio;
-                dato_cierre.fechacierre =fechacierre;
-                dato_cierre.fechavto =fechavto;
-            end if;
-        end loop;
-    end loop;
-
-    --Se guardan las compras
-    for compra_cliente in select * from compra loop
-        for filas in select * from dato_cierre loop
-            if (dato_cierre.nrotarjeta = compra.nrotarjeta AND ( (
-                    extract(month FROM fecha)= num_periodo AND extract(day FROM fecha)<27) 
-                    OR (extract(month FROM fecha)= num_periodo + 1 AND extract(day FROM fecha)>28) )) then
-                compra_cliente.nrotarjeta =dato_cierre.nrotarjeta;
-                compra_cliente.nrocomercio =nrocomercio;
-                compra_cliente.fecha =fecha,
-                compra_cliente.monto =monto;
-                compra_cliente.pagado =pagado;
-        end if;
-        end loop;
-    end loop;
-
-    --SE guardan los nombres del comercio
-    for compra_comercio in select * from comercio loop
-        for filat in select * from compra_cliente loop
-            if ((comercio.nrocomercio = compra_cliente.nrocomercio) AND (NOT compra_cliente)) then
-                compra_comercio.nrotarjeta = compra_cliente.nrotarjeta;
-                compra_comercio.nombre =comercio.nombre;
-                compra_comercio.fecha =compra_cliente.fecha;
-                compra_comercio.monto =compra_cliente.monto;
-            end if;
-        end loop;
-    end loop;
-
-    for total in select compra_comercio.monto from compra_comercio loop
-        total := total + compra_comercio.monto;
-    end loop;
+    total := select sum (compra_comercio.monto) from compra_comercio;
 
     --Inserta los datos en la tabla cabecera y detalle
-    for filac in select * from dato_cliente loop
-        for filaz in select * from dato_cierre loop
-            insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
-                values (dato_cliente.nombre, dato_cliente.apellido, dato_cliente.direccion,  
-                dato_cierre.nrotarjeta, dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto,
-                total
-                --select sum (compra_comercio.monto) from compra_comercio
+    for fila in select * from dato_cliente loop
+        for filad in select * from dato_cierre loop
+            insert into cabecera select dato_cliente.nombre, dato_cliente.apellido, dato_cliente.direccion,  
+                dato_cierre.nrotarjeta, dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total
+                total from (select * from dato_cliente, dato_cierre) as cabecera 
             );
             nresumen := cabecera.nroresumen;
             for filap in select * from compras_comercio loop
                 if (dato_cierre.nrotarjeta = compra_comercio.nrotarjeta) then
-                    insert into detalle values (nresumen, i, fecha, compra_comercio.fecha, compra_comercio.nombre, 
-                    compra_comercio.monto
+                    insert into detalle select nresumen, i, fecha, compra_comercio.fecha, compra_comercio.nombre, 
+                    compra_comercio.monto from compras_comercio;
                     );
                     i := i+1;
                 end if;
