@@ -267,5 +267,3 @@ select * from rechazo;
 
 select * from alerta;
 
-
-
