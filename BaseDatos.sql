@@ -465,6 +465,22 @@ end;
 $$ language plpgsql;
 
 
+--funcion que recorre la tabla consumo y va autorizando cada fila
+
+create or replace function realizar_compras() returns void as $$
+declare
+	fila record;
+begin
+	for fila in select * from consumo loop
+		perform autorizar_compra(fila.nrotarjeta, fila.codseguridad, fila.nrocomercio, fila.monto);
+	end loop;	
+	return;
+end;
+$$ language plpgsql;
+
+--select realizar_compras(); --descomentar para probar
+
+
 \c postgres
 
 
