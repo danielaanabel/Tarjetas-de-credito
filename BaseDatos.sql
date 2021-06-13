@@ -343,7 +343,7 @@ for each row
 execute procedure func_alerta_compra();
 
 --función para generar el resumen de les clientes
-reate or replace function genera_resumen(num_cliente int, periodo char(8)) returns void as $$
+create or replace function genera_resumen(num_cliente int, periodo char(8)) returns void as $$
 declare
     dato_cliente record;
     tarjetacliente  record;
