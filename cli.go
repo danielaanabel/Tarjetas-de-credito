@@ -31,7 +31,8 @@ func mostrar_opciones() {
 	fmt.Println("1- Crear base de datos")
 	fmt.Println("2- Crear tablas")
 	fmt.Println("3- Ingresar datos a las tablas")
-	fmt.Println("4- Cerrar conexion con la base")
+	fmt.Println("4- Crear funciones")
+	fmt.Println("5- Realizar compras")
 }
 
 //funcion que detecta la opción elegida a ejecutar---------------------------------------------------------
@@ -47,15 +48,20 @@ func ejecutar_opcion(opcion_elegida int) {
 
 		crear_tablas()
 
-	} else if opcion_elegida == 3 {
+	} else if opcion_elegida == 4 {
 
-		llenar_tablas()
+		crear_todas_las_funciones()
+
+	} else if opcion_elegida == 5 {
+
+		realizar_compras()
 
 	} else {
-
-		fmt.Println("Error, ingresa nuevamente")
-
+			
+		fmt.Println("Error, ingresa nuevamente")	
+			
 	}
+	
 
 	main() //llamo de vuelta al main para seguir con las opciones. corregir despues
 
@@ -87,7 +93,7 @@ func crear_bdd() {
 
 func conectar_con_bdd() *sql.DB {
 	//conectanos con nuestra base de datos
-	db, err := sql.Open("postgres", "user=postgres host=localhost dbname=tarjetasdecredito sslmode=disable")
+	db, err := sql.Open("postgres", "user=postgres host=localhost dbname=basedatos sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,3 +137,110 @@ func llenar_tablas() {
 
 	fmt.Printf("\n### Inserts creados###\n")
 }
+
+
+
+
+
+//funcion que llama a todas las funciones de sql para que se creen y se guarden en la base de datos (completar)-----------
+func crear_todas_las_funciones(){
+	
+	crear_funcion_autorizar_compra()
+	crear_funcion_realizar_compras()
+	
+	
+}
+
+
+
+
+//Creo la funcion autorizar_compra que se va a guardar en la base de datos--------------------------------------------------------------------
+func crear_funcion_autorizar_compra(){
+	
+	db := conectar_con_bdd()
+	
+	_,err := db.Exec(`create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
+declare
+    fecha_actual timestamp := current_timestamp(0);
+    tarjeta record;
+    monto_total decimal:= p_monto;
+begin
+
+    if ((select count(*) from compra where nrotarjeta = nro_tarjeta ) > 0) then 
+        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta); 
+    end if;
+    
+    select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
+    if  not found then --si no existe la tarjeta
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+        return false;
+    
+    elsif cod_seguridad != tarjeta.codseguridad then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+        return false;
+    
+    elsif (monto_total > tarjeta.limitecompra) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
+        return false;
+    
+    elsif (select verificar_vigencia((tarjeta.validahasta))) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+        return false;
+
+    elsif 'suspendida' = (tarjeta.estado) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+        return false;
+
+    else
+        --se autoriza la compra
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, true);
+        return true;
+    end if;
+end;
+$$ language plpgsql;`)
+
+if err != nil{
+		log.Fatal(err)
+}
+
+	fmt.Println("funcion creada")
+
+	
+}
+
+
+//Funcion para que recorre la tabla consumo y autoriza la compra ----------------------------------------
+//Esta funcion se guarda en la base de datos
+func crear_funcion_realizar_compras(){
+		
+		db := conectar_con_bdd()
+		
+		_,err := db.Exec(`create or replace function realizar_compras() returns void as $$
+declare
+	fila record;
+begin
+	for fila in select * from consumo loop
+		perform autorizar_compra(fila.nrotarjeta, fila.codseguridad, fila.nrocomercio, fila.monto);
+	end loop;	
+	return;
+end;
+$$ language plpgsql;`)
+	
+	if err != nil{
+			log.Fatal(err)
+	}
+
+}
+
+//Funcion que llama a la funcion de realizar compras que esta en la base de datos---------------------------
+func realizar_compras(){
+
+	db := conectar_con_bdd()
+	_,err := db.Exec(`select realizar_compras()`)
+	
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+}
+
