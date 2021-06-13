@@ -74,12 +74,32 @@ la base de datos relacional _PostgreSQL_. Por último, en _BoltDB_ se guardan da
 Las funciones creadas tienen como objetivo vincular al usuarie con la base de datos. La forma de interactuar es a través 
 de una interfaz de líneas de comandos.
 
-* _autorizar_compra_: 
+* _autorizar_compra_ 
 
 Recibe los datos de una posible compra (número de tarjeta, código de seguridad, número de comercio, 
 monto a pagar). La función retorna _true_ si se aprueba y _false_ si ocurre lo contrario.
 
-Para autorizar una compra la función controla que se cumplan los siguientes requisitos: 
+Para autorizar una compra la función controla que se cumplan los siguientes requisitos: La tarjeta debe existir y debe estar 
+en vigencia. La compra no debe superar el límite de compra (para eso se le suma las anteriores compras). La terjeta
+no debe estar suspendida.
+
+* _func_generar_resumen
+
+Recibe los datos del cliente con su período del año y genera un resumen con todas las compras y el total a pagar.
+
+* _func_alerta_rechazo_
+
+Esta función es ejecutada cuando se genera un rechazo al autorizar la compra. Se encarga de registrar el rechazo en una 
+tabla de alertas. Si un cliente tuvo dos rechazos por superar el límite de compra en un día, la función establece una
+suspensión de la tarjeta seguido de una alerta.
+
+* _func_alerta_compra
+
+Esta función es ejecutada cuando se realiza una compra. Controla que no se realicen dos compras en un lapso menor a 1 minuto 
+es dentro del código postal y un lapso de 5 minutos de en fuera del código postal. En caso de que se cumpla, la función registra 
+la alerta._
+
+
 
 == Problemas encontrados
 
@@ -96,7 +116,7 @@ verificando que el valor del campo _monto_ se encuentre vacío y entonces tiraba
 las compras previas mas el valor del nuevo monto, la solución fue controlar que existan compras previas para una determinada
  tarjeta antes de realizar la suma.
  
-== Comparación entre en SQL y NoSQL
+== Comparación entre SQL y NoSQL
 
 
 
