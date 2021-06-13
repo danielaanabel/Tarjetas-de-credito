@@ -147,6 +147,8 @@ func crear_todas_las_funciones(){
 	
 	crear_funcion_autorizar_compra()
 	crear_funcion_realizar_compras()
+	crear_verificar_vigencia()
+	crear_genera_resumen()
 	
 	
 }
@@ -232,9 +234,130 @@ $$ language plpgsql;`)
 
 }
 
+//Funcion genera_resumen que se guarda en la base de datos-----------------------------------------------------------------
+
+func crear_genera_resumen(){
+	
+	db := conectar_con_bdd()
+	
+	_, err := db.Exec(`create or replace function genera_resumen(num_cliente int, periodo char(8)) returns void as $$
+declare
+    dato_cliente record;
+    tarjetacliente  record;
+    compra_cliente record;
+    dato_cierre record;
+    compra_comercio record;
+    num_periodo int := cast (periodo as int);
+    fila record;
+    filap record;
+    filas record;
+    filat record;
+    filac record;
+    filaz record;
+    total decimal (8,2);
+    nresumen int;
+    i int :=1;
+    j int :=1;
+begin
+
+    --Se guardan datos del cliente 
+    for dato_cliente in select * from cliente loop
+        if (num_cliente = (select dato_cliente.nrocliente)) then
+            dato_cliente.nrocliente = nrocliente,
+            dato_cliente.nombre =nombre;
+            dato_cliente.apellido =apellido,
+            dato_cliente.domicilio =domicilio;
+            dato_cliente.telefono = telefono;
+        end if;
+    end loop;
+
+    --Se guardan las tarjetas del cliente
+    for tarjetacliente in select * from tarjeta loop
+        if (num_cliente = (select nrocliente from tarjeta)) then
+        --if (num_cliente = tarjeta.nrocliente) then
+            tarjetacliente.nrotarjeta =nrotarjeta;
+            tarjetacliente.nrocliente =nrocliente;
+        end if;
+    end loop;
+
+    --Se guardan los datos de cada tarjeta 
+    for dato_cierre in select * from cierre loop
+        for fila in select * from tarjetacliente loop
+            if (terminacion = cast (substr(tarjetacliente.nrotarjeta,length(tarjetacliente.nrotarjeta),length(nombre_lugar)) as integer)) then
+                dato_cierre.nrotarjeta = tarjetacliente.nrotarjeta;
+                dato_cierre.año =año;
+                dato_cierre.mes =mes;
+                dato_cierre.terminacion =terminacion;
+                dato_cierre.fechainicio =fechainicio;
+                dato_cierre.fechacierre =fechacierre;
+                dato_cierre.fechavto =fechavto;
+            end if;
+        end loop;
+    end loop;
+
+    --Se guardan las compras
+    for compra_cliente in select * from compra loop
+        for filas in select * from dato_cierre loop
+            if (dato_cierre.nrotarjeta = compra.nrotarjeta AND ( (
+                    extract(month FROM fecha)= num_periodo AND extract(day FROM fecha)<27) 
+                    OR (extract(month FROM fecha)= num_periodo + 1 AND extract(day FROM fecha)>28) )) then
+                compra_cliente.nrotarjeta =dato_cierre.nrotarjeta;
+                compra_cliente.nrocomercio =nrocomercio;
+                compra_cliente.fecha =fecha,
+                compra_cliente.monto =monto;
+                compra_cliente.pagado =pagado;
+        end if;
+        end loop;
+    end loop;
+
+    --SE guardan los nombres del comercio
+    for compra_comercio in select * from comercio loop
+        for filat in select * from compra_cliente loop
+            if ((comercio.nrocomercio = compra_cliente.nrocomercio) AND (NOT compra_cliente)) then
+                compra_comercio.nrotarjeta = compra_cliente.nrotarjeta;
+                compra_comercio.nombre =comercio.nombre;
+                compra_comercio.fecha =compra_cliente.fecha;
+                compra_comercio.monto =compra_cliente.monto;
+            end if;
+        end loop;
+    end loop;
+
+    for total in select compra_comercio.monto from compra_comercio loop
+        total := total + compra_comercio.monto;
+    end loop;
+
+    --Inserta los datos en la tabla cabecera y detalle
+    for filac in select * from dato_cliente loop
+        for filaz in select * from dato_cierre loop
+            insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
+                values (dato_cliente.nombre, dato_cliente.apellido, dato_cliente.direccion,  
+                dato_cierre.nrotarjeta, dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto,
+                total
+                --select sum (compra_comercio.monto) from compra_comercio
+            );
+            nresumen := cabecera.nroresumen;
+            for filap in select * from compras_comercio loop
+                if (dato_cierre.nrotarjeta = compra_comercio.nrotarjeta) then
+                    insert into detalle values (nresumen, i, fecha, compra_comercio.fecha, compra_comercio.nombre, 
+                    compra_comercio.monto
+                    );
+                    i := i+1;
+                end if;
+            end loop;
+        end loop;
+    end loop;
 
 
-//Funcion verificar_vigencia que se guarda en la base de datos----------------------------------------------
+end;
+$$ language plpgsql;`)
+	
+	if err != nil{
+			log.Fatal(err)
+	}
+	
+}
+
+//Funcion verificar_vigencia que se guarda en la base de datos-------------------------------------------------------------
 
 func crear_verificar_vigencia(){
 	
