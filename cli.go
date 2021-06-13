@@ -151,6 +151,7 @@ func crear_todas_las_funciones(){
 	crear_genera_resumen()
 	crear_funcierre()
 	crear_func_alerta_rechazo()
+	crear_func_alerta_compra()
 	
 	
 }
@@ -290,7 +291,66 @@ execute procedure func_alerta_rechazo();`)
 }
 
 
-//Funcion para que recorre la tabla consumo y autoriza la compra ----------------------------------------
+
+//Funcion func_alerta_compra que se guarda en la base de datos--------------------------------------------------------------
+
+func crear_func_alerta_compra(){
+	
+	db := conectar_con_bdd()
+	
+	_,err := db.Exec(`create function func_alerta_compra() returns trigger as $$
+declare
+    unminuto interval := '00:01:00';
+    cincominutos interval := '00:05:00';
+
+    i record;
+    j record;
+
+begin
+    if (select count(*) from compra where nrotarjeta = new.nrotarjeta) > 1 then
+            
+        for i in select * from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+            (select nrocomercio from comercio where nrocomercio != new.nrocomercio and codigopostal = 
+             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
+
+            if (new.fecha - i.fecha) <= unminuto then
+            
+                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+                values(new.nrotarjeta, new.fecha, null, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
+         
+            end if;
+        end loop;
+
+               
+        for j in select fecha from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+            (select nrocomercio from comercio where codigopostal != 
+             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
+
+            if (new.fecha - j.fecha) <= cincominutos then
+
+                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+                values(new.nrotarjeta, new.fecha, null, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
+            
+            end if;
+        end loop;
+    end if;
+    return new;
+end;
+$$ language plpgsql;
+
+create trigger compra_trg
+after insert on compra
+for each row
+execute procedure func_alerta_compra();`)
+	
+	if err != nil{
+			log.Fatal(err)
+	}
+	
+}
+
+
+//Funcion para que recorre la tabla consumo y autoriza la compra -----------------------------------------------------------
 //Esta funcion se guarda en la base de datos
 func crear_funcion_realizar_compras(){
 		
