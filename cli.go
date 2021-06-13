@@ -149,11 +149,50 @@ func crear_todas_las_funciones(){
 	crear_funcion_realizar_compras()
 	crear_verificar_vigencia()
 	crear_genera_resumen()
+	crear_funcierre()
 	
 	
 }
 
 
+//Funcion funcierre que se guarda en la base de datos---------------------------------------------------------------------
+
+func crear_funcierre(){
+	
+		db := conectar_con_bdd()
+		
+		_,err := db.Exec(`create or replace function funcierre() returns void as $$
+declare
+	i int :=0;
+	j int :=0;
+	n int :=9;
+	m int :=11;
+	fecha_inicio date :='2020-12-28';
+	fecha_cierre date :='2021-01-27';
+	fecha_vencimiento date :='2021-02-10';
+begin
+for i in i..n loop
+    for j in j..m loop
+        insert into cierre values(2021, j+1, i, fecha_inicio, fecha_cierre, fecha_vencimiento);
+        if (EXTRACT(ISOYEAR FROM fecha_vencimiento) = 2022) then
+            fecha_inicio := fecha_inicio - cast('11 month' as interval);
+            fecha_cierre := fecha_cierre - cast('11 month' as interval);
+            fecha_vencimiento := fecha_vencimiento - cast('11 month' as interval);
+        else
+            fecha_inicio := fecha_inicio + cast('1 month' as interval);
+            fecha_cierre := fecha_cierre+ cast('1 month' as interval);
+            fecha_vencimiento := fecha_vencimiento + cast('1 month' as interval);
+        end if;
+    end loop;
+end loop;
+end;
+$$ language plpgsql;`)
+		
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+}
 
 
 //Creo la funcion autorizar_compra que se va a guardar en la base de datos--------------------------------------------------------------------
