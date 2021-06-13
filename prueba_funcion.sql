@@ -1,7 +1,3 @@
-// Aguante El Comandante Chavez
-
-
-
 drop database if exists probfun;
 create database probfun;
 
@@ -27,27 +23,28 @@ end;
 $$ language plpgsql;
 
 
+--funcion para hacer los insert en la tabla cierre
 create or replace function funcierre() returns void as $$
 declare
-i int :=0;
-j int :=0;
-n int :=9;
-m int :=11;
-fechain date :='2020-12-28';
-fechac date :='2021-01-28';
-fechav date :='2021-02-10';
+	i int :=0;
+	j int :=0;
+	n int :=9;
+	m int :=11;
+	fecha_inicio date :='2020-12-28';
+	fecha_cierre date :='2021-01-27';
+	fecha_vencimiento date :='2021-02-10';
 begin
 for i in i..n loop
     for j in j..m loop
-        insert into cierre values(2021, j+1, i, fechain, fechac, fechav);
-        if (EXTRACT(ISOYEAR FROM fechav) = 2022) then
-            fechain :=fechain - cast('11 month' as interval);
-            fechac :=fechac - cast('11 month' as interval);
-            fechav :=fechav - cast('11 month' as interval);
+        insert into cierre values(2021, j+1, i, fecha_inicio, fecha_cierre, fecha_vencimiento);
+        if (EXTRACT(ISOYEAR FROM fecha_vencimiento) = 2022) then
+            fecha_inicio := fecha_inicio - cast('11 month' as interval);
+            fecha_cierre := fecha_cierre - cast('11 month' as interval);
+            fecha_vencimiento := fecha_vencimiento - cast('11 month' as interval);
         else
-            fechain :=fechain + cast('1 month' as interval);
-            fechac :=fechac + cast('1 month' as interval);
-            fechav :=fechav + cast('1 month' as interval);
+            fecha_inicio := fecha_inicio + cast('1 month' as interval);
+            fecha_cierre := fecha_cierre+ cast('1 month' as interval);
+            fecha_vencimiento := fecha_vencimiento + cast('1 month' as interval);
         end if;
     end loop;
 end loop;
@@ -57,5 +54,6 @@ $$ language plpgsql;
 --select num_aleatorio(100 , 999);
 select funcierre();
 --select crear_cierre();
+select * from cierre;
 
 \c postgres
