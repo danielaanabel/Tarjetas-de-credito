@@ -75,9 +75,16 @@ la base de datos relacional PostgreSQL. Por último, en BoltDB se guardan datos 
 
 == Problemas encontrados
 
-Un problema que se presento fue que cuando se intento hacer los triggers no se sabia como hacer para que recorra la tabla para tomar los valores de las fechas para comparar. En un principio se intento hacer una clausura que de las fechas que se pedia, pero no funciono. luego se obto por obtener todas las fechas de la tarjeta que se necesitaba en un record y hacerle un for para obtener cada fecha y comparar.
+Un problema que se presentó fue que cuando se intentó hacer los triggers no se sabía cómo hacer para que recorra
+ la tabla para tomar los valores de las fechas para comparar. En un principio se intentó hacer una clausura que dé las fechas 
+ que se pedía, pero no funcionó. Luego se optó por obtener todas las fechas de la tarjeta que se necesitaba en un record y 
+ hacerle un for para obtener cada fecha y comparar.
 
-Cuando se estaba haciendo el trigger de compras, que pasar hacer insert en la tabla alerta, como se necesita un nrorechazo y el trigger se activaba cuando se reliza una compra y no un rechazo, no teniamos el dato. Se soluciono dejandolo en null.
+Cuando se estaba haciendo el trigger de compras, que pasar hacer insert en la tabla alerta, como se necesita un nrorechazo y 
+el trigger se activaba cuando se reliza una compra y no un rechazo, no teníamos el dato. Se solucionó dejándolo en null.
 
-otro problema encontrado fue a la hora de realizar la suma de las compras para autorizar la nueva compra, no estabamos verificando que el valor del campo monto se encuentre vacio y entonces tiraba error a la hora de calcular la suma total de las compras previas mas el valor del nuevo monto, la solución fue controlar que existan compras previas para una determinada tarjeta antes de realizar la suma.
+Otro problema encontrado fue a la hora de realizar la suma de las compras para autorizar la nueva compra, no estábamos 
+verificando que el valor del campo monto se encuentre vacío y entonces tiraba error a la hora de calcular la suma total de 
+las compras previas mas el valor del nuevo monto, la solución fue controlar que existan compras previas para una determinada
+ tarjeta antes de realizar la suma.
 
