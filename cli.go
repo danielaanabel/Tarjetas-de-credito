@@ -67,7 +67,7 @@ func ejecutar_opcion(opcion_elegida int) {
 
 	} else if opcion_elegida == 6 {
 
-	fmt.Println("###### Fin ######")
+		fmt.Println("###### Fin ######")
 
 	} else {
 
@@ -103,7 +103,7 @@ func crear_bdd() {
 //funcion para conectar con nuestra bdd --------------------------------------------------------
 
 func conectar_con_bdd() *sql.DB {
-	
+
 	db, err := sql.Open("postgres", "user=postgres host=localhost dbname=basedatos sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
@@ -120,10 +120,10 @@ func conectar_con_bdd() *sql.DB {
 
 func crear_tablas() {
 
-	db := conectar_con_bdd() 
+	db := conectar_con_bdd()
 	defer db.Close()
 
-	_, err := db.Exec(`create table cliente(nrocliente int, nombre text, apellido text, domicilio text, telefono char(12));
+	_, err := db.Exec(`create table cliente(nrocliente  int, nombre text, apellido text, domicilio text, telefono char(12));
 
 create table tarjeta(nrotarjeta char(16), nrocliente int, validadesde char(6), validahasta char(6), codseguridad char(4), limitecompra decimal(8,2), estado char(10));
 
@@ -137,9 +137,9 @@ create table cierre(año int, mes int, terminacion int, fechainicio date, fechac
 
 create table cabecera(nroresumen serial, nombre text, apellido text, domicilio text, nrotarjeta char(16), desde date, hasta date, vence date, total decimal(8,2));
 
-create table detalle(nroresumen serial, nrolinea int, fecha date, nombrecomercio text, monto decimal(7,2));
+create table detalle(nroresumen int, nrolinea int, fecha date, nombrecomercio text, monto decimal(7,2));
 
-create table alerta(nroalerta serial, nrotarjeta char(16),fecha timestamp, nrorechazo int, codalerta int, descripcion text);
+create table alerta(nroalerta serial, nrotarjeta char(16), fecha timestamp, nrorechazo int, codalerta int, descripcion text);
 
 create table consumo(nrotarjeta char(16), codseguridad char(4), nrocomercio int, monto decimal(7,2));`)
 
@@ -199,7 +199,8 @@ func llenar_tablas() {
 	db := conectar_con_bdd()
 	defer db.Close()
 
-	_, err := db.Exec(`insert into cliente values(1,'Daniela Anabel','Oviedo','San Martin 3814','541130569988');
+	_, err := db.Exec(`--clientes 
+insert into cliente values(1,'Daniela Anabel','Oviedo','San Martin 3814','541130569988');
 insert into cliente values(2,'Fernando','Ferreyra','Benito Lynch 2206','541156441305');
 insert into cliente values(3, 'Elias','Goñez', 'Valparaiso 2050','541128898392');
 insert into cliente values(4,'Romina','Segretin','Uruguay 790','541154085062');
@@ -221,30 +222,29 @@ insert into cliente values(19,'Leandro David','Gimenez','Juan Maria Gutiérrez 1
 insert into cliente values(20,'Rodrigo Ezquiel','Palacios','Pablo Areguati 299','541124511771');
 
 
-
 --tarjetas
 insert into tarjeta values('4286283215095190', 1, '201709', '202208', '114', 45000.00, 'vigente');
 insert into tarjeta values('4532449515464319', 2, '202001', '202412', '881', 30000.00, 'vigente');
-insert into tarjeta values('4716905901199213', 3, '202108', '202607', '311', 150000.00, 'vigente');
+insert into tarjeta values('4716905901199213', 3, '202108', '202607', '311', 15000.00, 'vigente');
 insert into tarjeta values('4539760286740064', 4, '202204', '202703', '553', 35000.00, 'vigente');
 insert into tarjeta values('4916197097056062', 5, '202010', '202509', '103', 45000.00, 'anulada');
 insert into tarjeta values('4532157860627139', 6, '202004', '202503', '802', 42000.00, 'anulada');
-insert into tarjeta values('4449942525596585', 7, '202010', '202509', '552', 120000.00, 'vigente');
-insert into tarjeta values('4929028998516745', 8, '201610', '202109', '412', 110000.00, 'suspendida');
-insert into tarjeta values('4916558526474988', 9, '201604', '202103', '633', 65000.00, 'anulada');--vencida
+insert into tarjeta values('4449942525596585', 7, '202010', '202509', '552', 12000.00, 'vigente');
+insert into tarjeta values('4929028998516745', 8, '201610', '202109', '412', 11000.00, 'suspendida');
+insert into tarjeta values('4916558526474988', 9, '201604', '202103', '633', 65000.00, 'vencida');
 insert into tarjeta values('4456844734152285', 10, '201707', '202206', '853', 35000.00, 'anulada');
-insert into tarjeta values('5305073210930499', 11, '201707', '202206', '271', 140000.00, 'vigente');
+insert into tarjeta values('5305073210930499', 11, '201707', '202206', '271', 14000.00, 'vigente');
 insert into tarjeta values('5115874922952014', 12, '202008', '202507', '647', 70000.00, 'suspendida');
-insert into tarjeta values('5433516727758253', 13, '201802', '202301', '345', 150000.00, 'vigente');
-insert into tarjeta values('5200557813577356', 14, '201707', '202206', '112', 120000.00, 'anulada');
+insert into tarjeta values('5433516727758253', 13, '201802', '202301', '345', 15000.00, 'vigente');
+insert into tarjeta values('5200557813577356', 14, '201707', '202206', '112', 12000.00, 'anulada');
 insert into tarjeta values('5425807573408337', 15, '201712', '202211', '879', 43000.00, 'vigente');
-insert into tarjeta values('5255982663365344', 16, '201906', '202405', '768', 120000.00, 'suspendida');
-insert into tarjeta values('5535292533476491', 17, '201805', '202304', '876', 170000.00, 'vigente');
+insert into tarjeta values('5255982663365344', 16, '201906', '202405', '768', 12000.00, 'suspendida');
+insert into tarjeta values('5535292533476491', 17, '201805', '202304', '876', 17000.00, 'vigente');
 insert into tarjeta values('5425758312840399', 18, '202005', '202504', '881', 80000.00, 'vigente');
 insert into tarjeta values('340869936801114', 17, '201907', '202406', '675', 90000.00, 'vigente'); 
-insert into tarjeta values('342888106007110', 18, '202103', '202602', '127', 120000.00, 'vigente');
-insert into tarjeta values('343263611209214', 19, '201909', '202408', '901', 200000.00, 'anulada');
-insert into tarjeta values('377829618815820', 20, '201804', '202303', '320', 90000.00, 'suspendida');
+insert into tarjeta values('342888106007110', 18, '202103', '202602', '127', 12000.00, 'vigente');
+insert into tarjeta values('343263611209214', 19, '201909', '202408', '901', 20000.00, 'anulada');
+insert into tarjeta values('377829618815820', 20, '201804', '202303', '320', 75000.00, 'suspendida');
 
 
 --comercios
@@ -269,15 +269,21 @@ insert into comercio values(18, 'Supermercado Puma', 'Cordoba 212', 'B1610GBF', 
 insert into comercio values(19, 'Aberturas Pepe', '9 de Julio 3004', 'C1040JUG', '541126897468');
 insert into comercio values(20, 'Cinemark', 'Constituyentes 2078', 'B1620MVU', '541128969864');
 
-
 --consumos
+
 insert into consumo values('4716905901199213', '311', 10, 750.00);
 insert into consumo values('5305073210930499', '271', 6, 1500.00);
 insert into consumo values('5535292533476491', '876', 1, 3000.00);
-insert into consumo values('4916197097056062', '103', 11, 500.00);
 insert into consumo values('5425758312840399', '881', 15, 1000.00);
 insert into consumo values('4449942525596585', '552', 12, 2000.00);
-insert into consumo values('4286283215095190', '114', 14, 550.00);`)
+insert into consumo values('4916197097056062', '103', 11, 500.00);--anulada
+insert into consumo values('4449942525596585', '411', 2, 12000.00);--tarjeta mal codigo de seguridad
+insert into consumo values('4916558526474988', '633', 4, 3000.00);--tarjeta vencida 
+insert into consumo values('4929028998516745', '412', 5, 5000.00);--tarjeta suspendida
+insert into consumo values('4286283215095190', '114', 1, 1000.00);
+insert into consumo values('4286283215095190', '114', 2, 1000.00);--2 compras en menos de un minuto en comercios distintos mismo CP
+insert into consumo values('5425807573408337', '879', 20, 44000.00);--compra supera el limite de la tarjeta
+insert into consumo values('5425807573408337', '879', 20, 44000.00);--segunda vez rechazada por exceso del limite`)
 
 	if err != nil {
 		log.Fatal(err)
@@ -293,7 +299,7 @@ func crear_todas_las_funciones() {
 	crear_funcion_realizar_compras()
 	crear_verificar_vigencia()
 	crear_generar_resumen()
-	crear_funcierre()
+	crear_llenar_cierre()
 	crear_func_alerta_rechazo()
 	crear_func_alerta_compra()
 
@@ -302,12 +308,12 @@ func crear_todas_las_funciones() {
 
 //Funcion funcierre que se guarda en la base de datos---------------------------------------------------------------------
 
-func crear_funcierre() {
+func crear_llenar_cierre() {
 
 	db := conectar_con_bdd()
 	defer db.Close()
 
-	_, err := db.Exec(`create or replace function funcierre() returns void as $$
+	_, err := db.Exec(`create or replace function llenar_cierre() returns void as $$
 declare
 	i int :=0;
 	j int :=0;
@@ -352,35 +358,46 @@ declare
     tarjeta record;
     monto_total decimal:= p_monto;
 begin
-
+    --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
     if ((select count(*) from compra where nrotarjeta = nro_tarjeta ) > 0) then 
-        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta); 
+        --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
+        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta and pagado = false); 
     end if;
     
     select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
-    if  not found then --si no existe la tarjeta
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+    if  not found then 
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
         return false;
     
     elsif cod_seguridad != tarjeta.codseguridad then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
         return false;
     
     elsif (monto_total > tarjeta.limitecompra) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
         return false;
     
     elsif (select verificar_vigencia((tarjeta.validahasta))) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
         return false;
 
     elsif 'suspendida' = (tarjeta.estado) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+        return false;
+
+    elsif 'anulada' = (tarjeta.estado) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra anulada');
         return false;
 
     else
-        --se autoriza la compra
-        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, true);
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, false);--se autoriza la compra
         return true;
     end if;
 end;
@@ -409,10 +426,12 @@ begin
 
     for i in select * from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' loop 
         if (new.fecha - i.fecha) < undia then
+
             update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
             
             insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
             values(new.nrotarjeta, new.fecha, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+
         end if; 
     end loop;   
     return new;
@@ -420,7 +439,7 @@ end;
 $$ language plpgsql;
 
 create trigger rechazo_trg
-before insert on rechazo
+after insert on rechazo
 for each row
 execute procedure func_alerta_rechazo();`)
 
@@ -444,7 +463,6 @@ declare
 
     i record;
     j record;
-
 begin
     if (select count(*) from compra where nrotarjeta = new.nrotarjeta) > 1 then
             
@@ -459,7 +477,6 @@ begin
          
             end if;
         end loop;
-
                
         for j in select fecha from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
             (select nrocomercio from comercio where codigopostal != 
@@ -519,33 +536,37 @@ func crear_generar_resumen() {
 	db := conectar_con_bdd()
 	defer db.Close()
 
-	_, err := db.Exec(`create or replace function generar_resumen(nro_cliente int, periodo char(6)) returns void as $$
+	_, err := db.Exec(`create or replace function generar_resumen(nro_cliente int, periodo_año int, periodo_mes int) returns void as $$
 declare
     dato_cliente record;
     tarjeta_cliente record;
     dato_cierre record;
-    total_a_pagar decimal(8,2);
     fila_compras record;
-    contador_linea int := 1;
-    periodo_cast int :=(select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int));
+
+    total_a_pagar decimal(8,2);
+    contador_linea int := 1;   
 begin
     select * into dato_cliente from cliente where nrocliente = nro_cliente;
-   
-    for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  --para cada tarjeta del cliente hacemos...
-        
-        select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int)) 
-        and mes = periodo_cast;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
+    --para cada tarjeta del cliente hacemos...
+    for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop--obtener la terminacion de esa tarjeta 
+                                                                                       
+        select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int))
+        and mes = periodo_mes;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
-                total_a_pagar:= (select sum(monto) from compra c where nrotarjeta = tarjeta_cliente.nrotarjeta ); --sumamos el total de compras para esa tarjeta 
+        --sumamos el total de compras para esa tarjeta y ese periodo
+        total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes) and pagado = false; 
 
-                insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
-                values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
-                       dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
+        insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
+        values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
+               dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
                        
-        for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta loop
-          insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta),
-           contador_linea, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
-             contador_linea := contador_linea + 1;
+        for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes and pagado = false loop
+            
+            insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta), contador_linea, fila_compras.fecha, 
+                                        (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
+            
+            contador_linea := contador_linea + 1;
+
         end loop;
         contador_linea := 1;
     end loop;
@@ -567,13 +588,26 @@ func crear_verificar_vigencia() {
 
 	_, err := db.Exec(`create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
 declare
-     fecha_actual date :=to_date(to_char(current_date,'YYYYMM'),'YYYYMM'); 
-     fecha_tarjeta date:=to_date(fecha_vencimiento, 'YYYYMM'); 
+     fecha_actual date :=to_date(to_char(current_date,'YYYYMM'),'YYYYMM'); --extrae el año y mes de la fecha actual en formato date
+     fecha_tarjeta date:=to_date(fecha_vencimiento, 'YYYYMM'); --extrae el año y mes de la fecha de vencimiento de la tarjeta en formato date
 begin
-     if (fecha_tarjeta <= fecha_actual) then 
+     if (fecha_tarjeta <= fecha_actual) then --si la fecha es menor a la fecha actual esta vencida.
         return true;
      end if;
-return false;
+     return false;
+end;
+$$ language plpgsql;
+
+
+--funcion que recorre la tabla consumo y va autorizando cada fila
+create or replace function realizar_compras() returns void as $$
+declare
+	fila record;
+begin
+	for fila in select * from consumo loop
+		perform autorizar_compra(fila.nrotarjeta, fila.codseguridad, fila.nrocomercio, fila.monto);
+	end loop;	
+	return;
 end;
 $$ language plpgsql;`)
 
