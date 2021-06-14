@@ -143,7 +143,6 @@ insert into cliente values(19,'Leandro David','Gimenez','Juan Maria Gutiérrez 1
 insert into cliente values(20,'Rodrigo Ezquiel','Palacios','Pablo Areguati 299','541124511771');
 
 
-
 --tarjetas
 insert into tarjeta values('4286283215095190', 1, '201709', '202208', '114', 45000.00, 'vigente');
 insert into tarjeta values('4532449515464319', 2, '202001', '202412', '881', 30000.00, 'vigente');
@@ -208,8 +207,6 @@ insert into consumo values('5425807573408337', '879', 20, 44000.00);--compra sup
 insert into consumo values('5425807573408337', '879', 20, 44000.00);--segunda vez rechazada por exceso del limite
 
 
-
-
 --funcion para hacer los insert en la tabla cierre
 --funcion para hacer los insert en la tabla cierre
 create or replace function llenar_cierre() returns void as $$
@@ -239,6 +236,7 @@ end loop;
 end;
 $$ language plpgsql;
 
+
 --función para autorizar las nuevas compras y tambien para autorizar consumos previos
 create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
 declare
@@ -246,42 +244,51 @@ declare
     tarjeta record;
     monto_total decimal:= p_monto;
 begin
-
-    if ((select count(*) from compra where nrotarjeta = nro_tarjeta ) > 0) then --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
-        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta and pagado = false); --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
+    --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
+    if ((select count(*) from compra where nrotarjeta = nro_tarjeta ) > 0) then 
+        --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
+        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta and pagado = false); 
     end if;
     
     select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
     if  not found then 
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
         return false;
     
     elsif cod_seguridad != tarjeta.codseguridad then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
         return false;
     
     elsif (monto_total > tarjeta.limitecompra) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
         return false;
     
     elsif (select verificar_vigencia((tarjeta.validahasta))) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
         return false;
 
     elsif 'suspendida' = (tarjeta.estado) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
         return false;
 
     elsif 'anulada' = (tarjeta.estado) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra anulada');
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra anulada');
         return false;
 
     else
-        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, false);--se autoriza la compra
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) 
+        values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, false);--se autoriza la compra
         return true;
     end if;
 end;
 $$ language plpgsql;
+
 
 --función del trigger cuando se produce un rechazo
 create or replace function func_alerta_rechazo() returns trigger as $$
@@ -294,10 +301,12 @@ begin
 
     for i in select * from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' loop 
         if (new.fecha - i.fecha) < undia then
+
             update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
             
             insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
             values(new.nrotarjeta, new.fecha, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+
         end if; 
     end loop;   
     return new;
@@ -309,6 +318,7 @@ after insert on rechazo
 for each row
 execute procedure func_alerta_rechazo();
 
+
 --función del trigger cuando se producen compras dudosas
 create function func_alerta_compra() returns trigger as $$
 declare
@@ -317,7 +327,6 @@ declare
 
     i record;
     j record;
-
 begin
     if (select count(*) from compra where nrotarjeta = new.nrotarjeta) > 1 then
             
@@ -332,7 +341,6 @@ begin
          
             end if;
         end loop;
-
                
         for j in select fecha from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
             (select nrocomercio from comercio where codigopostal != 
@@ -355,34 +363,39 @@ after insert on compra
 for each row
 execute procedure func_alerta_compra();
 
+
 --función para generar el resumen de les clientes
 create or replace function generar_resumen(nro_cliente int, periodo_año int, periodo_mes int) returns void as $$
 declare
     dato_cliente record;
     tarjeta_cliente record;
     dato_cierre record;
-    total_a_pagar decimal(8,2);
     fila_compras record;
-    contador_linea int := 1;
-   
+
+    total_a_pagar decimal(8,2);
+    contador_linea int := 1;   
 begin
     select * into dato_cliente from cliente where nrocliente = nro_cliente;
-   
-    for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  --para cada tarjeta del cliente hacemos...
-        
-        select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int))--obtener la terminacion de esa tarjeta
+    --para cada tarjeta del cliente hacemos...
+    for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  
+                                                                                       --obtener la terminacion de esa tarjeta
+        select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int))
         and mes = periodo_mes;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
-                total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes); --sumamos el total de compras para esa tarjeta y ese periodo
+        --sumamos el total de compras para esa tarjeta y ese periodo
+        total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes); 
 
-                insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
-                values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
-                       dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
+        insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
+        values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
+               dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
                        
         for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes loop
-          insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta),
-           contador_linea, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
-             contador_linea := contador_linea + 1;
+            
+            insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta), contador_linea, fila_compras.fecha, 
+                                        (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
+            
+            contador_linea := contador_linea + 1;
+
         end loop;
         contador_linea := 1;
     end loop;
@@ -399,13 +412,12 @@ begin
      if (fecha_tarjeta <= fecha_actual) then --si la fecha es menor a la fecha actual esta vencida.
         return true;
      end if;
-return false;
+     return false;
 end;
 $$ language plpgsql;
 
 
 --funcion que recorre la tabla consumo y va autorizando cada fila
-
 create or replace function realizar_compras() returns void as $$
 declare
 	fila record;

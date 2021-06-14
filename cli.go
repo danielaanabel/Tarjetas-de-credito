@@ -6,56 +6,13 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"encoding/json"
-	bolt "github.com/coreos/bbolt"
-	"log"
 	_ "github.com/lib/pq"
-	"strconv"
-	
+	"log"
 )
-
-
-		type Cliente struct {
-				Nrocliente int
-				Nombre string
-				Apellido string
-				Domicilio string
-				Telefono string
-		}
-		
-		type Tarjeta struct {
-				Nrotarjeta string
-				Nrocliente int
-				Validadesde string
-				Validahasta string
-				Codseguridad string
-				Limitecompra float64
-				Estado string
-		}
-		
-		type Comercio struct {
-				Nrocomercio int
-				Nombre string
-				Domicilio string
-				Codigopostal string
-				Telefono string
-		}
-		
-		type Compra struct {
-				Nrooperacion int
-				Nrotarjeta string
-				Nrocomercio int
-				Fecha string
-				Monto float64
-				Pagado bool
-		}
-		
-		
 
 //main----------------------------------------------------------------------------------------------------
 func main() {
 
-	
 	var opcion_elegida int //numero que elegira el usuario para ejecutar una opcion
 
 	mostrar_opciones()
@@ -75,8 +32,7 @@ func mostrar_opciones() {
 	fmt.Println("3- Ingresar datos a las tablas")
 	fmt.Println("4- Crear funciones")
 	fmt.Println("5- Realizar compras")
-	fmt.Println("6- Cargar datos a bolt.db")
-	fmt.Println("7- Salir\n")
+	fmt.Println("6- Salir\n")
 }
 
 //funcion que detecta la opción elegida a ejecutar---------------------------------------------------------
@@ -93,39 +49,34 @@ func ejecutar_opcion(opcion_elegida int) {
 
 		crear_tablas()
 		main()
-		
+
 	} else if opcion_elegida == 3 {
-		
-		llenar_tablas()	
+
+		llenar_tablas()
 		main()
-		
+
 	} else if opcion_elegida == 4 {
 
 		crear_todas_las_funciones()
 		main()
-		
+
 	} else if opcion_elegida == 5 {
 
 		realizar_compras()
 		main()
-		
+
 	} else if opcion_elegida == 6 {
-		
-		escribir_en_bolt()	
-		
-	} else if opcion_elegida == 7 {
-		
-		fmt.Println("###### Fin ######")	
+
+	fmt.Println("###### Fin ######")
 
 	} else {
-			
-		fmt.Println("Error, ingresa nuevamente")
-		main()	
-			
-	}
-	
 
-	 //llamo de vuelta al main para seguir con las opciones. corregir despues
+		fmt.Println("Error, ingresa nuevamente")
+		main()
+
+	}
+
+	//llamo de vuelta al main para seguir con las opciones. corregir despues
 
 }
 
@@ -159,7 +110,7 @@ func conectar_con_bdd() *sql.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	return db
 }
 
@@ -172,9 +123,8 @@ func conectar_con_bdd() *sql.DB {
 func crear_tablas() {
 
 	db := conectar_con_bdd() // conectamos a nuestra base de datos
-	defer db.Close()         
-	
-	
+	defer db.Close()
+
 	_, err := db.Exec(`create table cliente(nrocliente int, nombre text, apellido text, domicilio text, telefono char(12));
 
 create table tarjeta(nrotarjeta char(16), nrocliente int, validadesde char(6), validahasta char(6), codseguridad char(4), limitecompra decimal(8,2), estado char(10));
@@ -198,7 +148,7 @@ create table consumo(nrotarjeta char(16), codseguridad char(4), nrocomercio int,
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	crear_pk_fk()
 
 	//hace falta aqui una funcion que cree las pk y fk
@@ -206,15 +156,14 @@ create table consumo(nrotarjeta char(16), codseguridad char(4), nrocomercio int,
 	fmt.Printf("\n### Tablas creadas ###\n")
 }
 
-
 //Funcion que crea todas las pk's y fk's--------------------------------------------------------------------
 
-func crear_pk_fk(){
-	
-		db := conectar_con_bdd()
-		defer db.Close()
-		
-		_,err := db.Exec(`alter table cliente  add constraint cliente_pk  primary key (nrocliente);
+func crear_pk_fk() {
+
+	db := conectar_con_bdd()
+	defer db.Close()
+
+	_, err := db.Exec(`alter table cliente  add constraint cliente_pk  primary key (nrocliente);
 alter table tarjeta  add constraint tarjeta_pk  primary key (nrotarjeta);
 alter table comercio add constraint comercio_pk primary key (nrocomercio);
 alter table compra   add constraint compra_pk   primary key (nrooperacion);
@@ -241,13 +190,12 @@ alter table alerta   add constraint alerta_nrorechazo_fk   foreign key (nrorecha
 
 alter table consumo  add constraint consumo_nrotarjeta_fk  foreign key (nrotarjeta)  references tarjeta(nrotarjeta);
 alter table consumo  add constraint consumo_nrocomercio_fk foreign key (nrocomercio) references comercio(nrocomercio);`)
-		
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-}
 
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
 
 //Inserts----------------------------------------------------------------------------------------------------
 func llenar_tablas() {
@@ -342,13 +290,9 @@ insert into consumo values('4286283215095190', '114', 14, 550.00);`)
 	fmt.Printf("\n### Inserts creados###\n")
 }
 
-
-
-
-
 //funcion que llama a todas las funciones de sql para que se creen y se guarden en la base de datos (completar)-----------
-func crear_todas_las_funciones(){
-	
+func crear_todas_las_funciones() {
+
 	crear_funcion_autorizar_compra()
 	crear_funcion_realizar_compras()
 	crear_verificar_vigencia()
@@ -356,19 +300,18 @@ func crear_todas_las_funciones(){
 	crear_funcierre()
 	crear_func_alerta_rechazo()
 	crear_func_alerta_compra()
-	
+
 	fmt.Printf("\n### Funciones guardadas en la base de datos ###\n")
 }
 
-
 //Funcion funcierre que se guarda en la base de datos---------------------------------------------------------------------
 
-func crear_funcierre(){
-	
-		db := conectar_con_bdd()
-		defer db.Close()
-		
-		_,err := db.Exec(`create or replace function funcierre() returns void as $$
+func crear_funcierre() {
+
+	db := conectar_con_bdd()
+	defer db.Close()
+
+	_, err := db.Exec(`create or replace function funcierre() returns void as $$
 declare
 	i int :=0;
 	j int :=0;
@@ -394,21 +337,20 @@ for i in i..n loop
 end loop;
 end;
 $$ language plpgsql;`)
-		
-		if err != nil{
-				log.Fatal(err)
-		}
-		
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }
 
-
 //Creo la funcion autorizar_compra que se va a guardar en la base de datos--------------------------------------------------------------------
-func crear_funcion_autorizar_compra(){
-	
+func crear_funcion_autorizar_compra() {
+
 	db := conectar_con_bdd()
 	defer db.Close()
-	
-	_,err := db.Exec(`create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
+
+	_, err := db.Exec(`create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
 declare
     fecha_actual timestamp := current_timestamp(0);
     tarjeta record;
@@ -448,24 +390,20 @@ begin
 end;
 $$ language plpgsql;`)
 
-if err != nil{
+	if err != nil {
 		log.Fatal(err)
+	}
+
 }
-
-
-	
-}
-
-
 
 //Funcion func_alerta_rechazo que se guarda en la base de datos-------------------------------------------------------
 
-func crear_func_alerta_rechazo(){
+func crear_func_alerta_rechazo() {
 
 	db := conectar_con_bdd()
 	defer db.Close()
-	
-	_,err:= db.Exec(`create or replace function func_alerta_rechazo() returns trigger as $$
+
+	_, err := db.Exec(`create or replace function func_alerta_rechazo() returns trigger as $$
 declare
     undia interval := '24:00:00';
     i record;
@@ -489,23 +427,21 @@ create trigger rechazo_trg
 before insert on rechazo
 for each row
 execute procedure func_alerta_rechazo();`)
-	
-	if err != nil{
-			log.Fatal(err)
+
+	if err != nil {
+		log.Fatal(err)
 	}
-	
+
 }
-
-
 
 //Funcion func_alerta_compra que se guarda en la base de datos--------------------------------------------------------------
 
-func crear_func_alerta_compra(){
-	
+func crear_func_alerta_compra() {
+
 	db := conectar_con_bdd()
 	defer db.Close()
-	
-	_,err := db.Exec(`create function func_alerta_compra() returns trigger as $$
+
+	_, err := db.Exec(`create function func_alerta_compra() returns trigger as $$
 declare
     unminuto interval := '00:01:00';
     cincominutos interval := '00:05:00';
@@ -549,22 +485,21 @@ create trigger compra_trg
 after insert on compra
 for each row
 execute procedure func_alerta_compra();`)
-	
-	if err != nil{
-			log.Fatal(err)
-	}
-	
-}
 
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
 
 //Funcion para que recorre la tabla consumo y autoriza la compra -----------------------------------------------------------
 //Esta funcion se guarda en la base de datos
-func crear_funcion_realizar_compras(){
-		
-		db := conectar_con_bdd()
-		defer db.Close()
-		
-		_,err := db.Exec(`create or replace function realizar_compras() returns void as $$
+func crear_funcion_realizar_compras() {
+
+	db := conectar_con_bdd()
+	defer db.Close()
+
+	_, err := db.Exec(`create or replace function realizar_compras() returns void as $$
 declare
 	fila record;
 begin
@@ -574,20 +509,20 @@ begin
 	return;
 end;
 $$ language plpgsql;`)
-	
-	if err != nil{
-			log.Fatal(err)
+
+	if err != nil {
+		log.Fatal(err)
 	}
 
 }
 
 //Funcion genera_resumen que se guarda en la base de datos-----------------------------------------------------------------
 
-func crear_generar_resumen(){
-	
+func crear_generar_resumen() {
+
 	db := conectar_con_bdd()
 	defer db.Close()
-	
+
 	_, err := db.Exec(`create or replace function generar_resumen(nro_cliente int, periodo char(6)) returns void as $$
 declare
     dato_cliente record;
@@ -620,21 +555,21 @@ begin
     end loop;
 end;
 $$ language plpgsql;`)
-	
-	if err != nil{
-			log.Fatal(err)
+
+	if err != nil {
+		log.Fatal(err)
 	}
-	
+
 }
 
 //Funcion verificar_vigencia que se guarda en la base de datos-------------------------------------------------------------
 
-func crear_verificar_vigencia(){
-	
+func crear_verificar_vigencia() {
+
 	db := conectar_con_bdd()
 	defer db.Close()
-	
-	_,err := db.Exec(`create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
+
+	_, err := db.Exec(`create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
 declare
      fecha_actual date :=to_date(to_char(current_date,'YYYYMM'),'YYYYMM'); 
      fecha_tarjeta date:=to_date(fecha_vencimiento, 'YYYYMM'); 
@@ -645,177 +580,24 @@ begin
 return false;
 end;
 $$ language plpgsql;`)
-	
+
 	if err != nil {
-			log.Fatal(err)
+		log.Fatal(err)
 	}
-	
+
 }
 
-
 //Funcion que llama a la funcion de realizar compras que esta en la base de datos---------------------------
-func realizar_compras(){
+func realizar_compras() {
 
 	db := conectar_con_bdd()
 	defer db.Close()
-	
-	_,err := db.Exec(`select realizar_compras()`)
-	
+
+	_, err := db.Exec(`select realizar_compras()`)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("\n### Compras realizadas ###\n")
-	
+
 }
-
-//A partir de aca todo es sobre escritura y lectura en bolt---------------------------------------------------------
-
-
-func CreateUpdate(dbb *bolt.DB, bucketName string, key []byte, val []byte) error{
-	
-		tx, err := dbb.Begin(true)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		
-		b,_ := tx.CreateBucketIfNotExists([]byte(bucketName))
-		
-		err = b.Put(key, val)
-		if err != nil{
-			return err
-		}
-		if err := tx.Commit(); err != nil {
-				return err
-			}
-		return nil	
-}
-
-
-func ReadUnique(dbb *bolt.DB, bucketName string, key []byte) ([]byte, error){
-		var buf []byte
-		
-		err := dbb.View(func(tx *bolt.Tx) error {
-				b := tx.Bucket([]byte(bucketName))
-				buf = b.Get(key)
-				return nil
-		})
-		return buf,err
-}
-
-
-func escribir_en_bolt(){
-		
-		dbb, err := bolt.Open("bolt.db", 0600, nil)
-		if err != nil {
-				log.Fatal(err)
-		}
-		defer dbb.Close()
-		
-		
-		//Hago todos las variables structs
-		
-		cliente1 := Cliente{1, "Jose Maria", "Perez", "Av. T de Alvear 1299", "541126598745"}
-		cliente2 := Cliente{2, "Roberto", "Rafaela", "Azcuenaga 548", "541146598787"}
-		cliente3 := Cliente{3, "Cecilia", "Suarez", "Salta 1210", "541126498789"}
-		
-		comercio1 := Comercio{1, "Lo de Tito", "Vivaldi 339", "C1456NSM", "541178955412"}
-		comercio2 := Comercio{2, "Moncho", "Catamarca 138", "B1600KIB", "541185749688"}
-		comercio3 := Comercio{3, "Tecnico el Chapu", "Canal Beagle 1708", "B1610OIB", "541165754648"}
-		
-		tarjeta1 := Tarjeta{"4286283215095190", 1, "201709", "202208", "114", 45000.00, "vigente"}
-		tarjeta2 := Tarjeta{"4532449515464319", 2, "202001", "202412", "881", 30000.00, "vigente"}
-		tarjeta3 := Tarjeta{"4716905901199213", 3, "202108", "202607", "311", 15000.00, "vigente"}
-
-		compra1 := Compra{1, "4286283215095190", 1, "2021-06-12", 293, true}
-		compra2 := Compra{2, "4532449515464319", 2, "2021-06-11", 1800, true}
-		compra3 := Compra{3, "4716905901199213", 3, "2021-06-13", 5500, true}
-		
-		//Paso todo a JSON
-		
-		datacl1, err := json.Marshal(cliente1)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		datacl2, err := json.Marshal(cliente2)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		datacl3, err := json.Marshal(cliente3)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		dataco1, err := json.Marshal(comercio1)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		dataco2, err := json.Marshal(comercio2)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		dataco3, err := json.Marshal(comercio3)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		datata1, err := json.Marshal(tarjeta1)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		datata2, err := json.Marshal(tarjeta2)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		datata3, err := json.Marshal(tarjeta3)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		datacpra1, err := json.Marshal(compra1)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		datacpra2, err := json.Marshal(compra2)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		datacpra3, err := json.Marshal(compra3)
-		if err != nil{
-				log.Fatal(err)
-		}
-		
-		//Creo los buckets
-		
-		CreateUpdate(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)),datacl1)
-		CreateUpdate(dbb, "cliente2", []byte(strconv.Itoa(cliente2.Nrocliente)),datacl2)
-		CreateUpdate(dbb, "cliente3", []byte(strconv.Itoa(cliente3.Nrocliente)),datacl3)
-		
-		CreateUpdate(dbb, "comercio1", []byte(strconv.Itoa(comercio1.Nrocomercio)),dataco1)
-		CreateUpdate(dbb, "comercio2", []byte(strconv.Itoa(comercio2.Nrocomercio)),dataco2)
-		CreateUpdate(dbb, "comercio3", []byte(strconv.Itoa(comercio3.Nrocomercio)),dataco3)
-
-		CreateUpdate(dbb, "tarjeta1", []byte(tarjeta1.Nrotarjeta),datata1)
-		CreateUpdate(dbb, "tarjeta2", []byte(tarjeta2.Nrotarjeta),datata2)
-		CreateUpdate(dbb, "tarjeta3", []byte(tarjeta3.Nrotarjeta),datata3)
-
-		CreateUpdate(dbb, "compra1", []byte(strconv.Itoa(compra1.Nrooperacion)),datacpra1)
-		CreateUpdate(dbb, "compra2", []byte(strconv.Itoa(compra2.Nrooperacion)),datacpra2)
-		CreateUpdate(dbb, "compra3", []byte(strconv.Itoa(compra3.Nrooperacion)),datacpra3)
-		
-		fmt.Printf("\n### Datos cargados a bolt.db ###\n")
-		//para probar el read
-		//resultado, err := ReadUnique(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)))
-		//fmt.Printf("%s\n",resultado)
-}		
-		
-
-
