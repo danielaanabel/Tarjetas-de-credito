@@ -1,9 +1,10 @@
 = Universidad Nacional de General Sarmiento - Base de datos- Trabajo Práctico
-:toc:
+Trabajo Práctico
+:toc: left
 :toc-title: Contenidos
 :numbered:
 
-==Integrantes
+=Integrantes
 
 Ferreyra Fernando
 
@@ -14,8 +15,7 @@ Oviedo Daniela
 Segretín Romina
 
 
-== Introducción
-
+==Introducción
 
 En el presente informe nos proponemos explicar el proceso transcurrido para dar respuesta a una situación planteada en el marco de la materia
 _Bases de datos 1_. Contaremos los pasos realizados y dificultades en la realización de la base de datos que modeliza el almacenamiento
