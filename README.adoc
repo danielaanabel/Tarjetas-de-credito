@@ -4,7 +4,7 @@ Trabajo Práctico
 :toc-title: Contenidos
 :numbered:
 
-=Integrantes
+* Integrantes
 
 Ferreyra Fernando
 
@@ -16,6 +16,7 @@ Segretín Romina
 
 
 ==Introducción
+
 
 En el presente informe nos proponemos explicar el proceso transcurrido para dar respuesta a una situación planteada en el marco de la materia
 _Bases de datos 1_. Contaremos los pasos realizados y dificultades en la realización de la base de datos que modeliza el almacenamiento
