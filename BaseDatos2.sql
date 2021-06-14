@@ -366,7 +366,6 @@ begin
    
     for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  --para cada tarjeta del cliente hacemos...
         
-        --obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
         select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int)) 
         and mes = periodo_cast;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
@@ -377,7 +376,8 @@ begin
                        dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
                        
         for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta loop
-          insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta), contador_linea, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
+          insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta),
+           contador_linea, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
              contador_linea := contador_linea + 1;
         end loop;
         contador_linea := 1;
@@ -418,9 +418,9 @@ select llenar_cierre();
 
 select realizar_compras();
 
-select * from compra where nrotarjeta = '4286283215095190';
+select * from compra where nrotarjeta = '5425758312840399';
 
-select generar_resumen(1,'202105');
+select generar_resumen(18,'202106');
 
 select * from cabecera;
 
