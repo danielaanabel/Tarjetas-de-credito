@@ -1,25 +1,39 @@
-= Base de datos: Trabajo Práctico
-:toc:
+= Universidad Nacional de General Sarmiento - Base de datos- Trabajo Práctico
+Trabajo Práctico
+:toc: left
 :toc-title: Contenidos
 :numbered:
 
-== Integrantes
+- Integrantes
 
-* Ferreyra Fernando.
-* Goñez Elías.
-* Oviedo Daniela.
-* Segretin Romina.
+* Ferreyra Fernando
 
+* Goñes Elías
+
+* Oviedo Daniela
+
+* Segretín Romina
 
 
 == Introducción
 
-El trabajo práctico solicita la creación de una base de datos para un sistema de tarjetas de crédito. 
+
+En el presente informe nos proponemos explicar el proceso transcurrido para dar respuesta a una situación planteada en el marco de la materia
+_Bases de datos 1_. Contaremos los pasos realizados y dificultades en la realización de la base de datos que modeliza el almacenamiento
+de información relativa a tarjetas de crédito, en la creación del archivo CLI implementado en go y en la creación de otra base de datos BoltDB, también desde la aplicación CLI.
+Desarrollaremos nuestra explicación en tres partes: _descripción de las tablas principales_, _Stored Procedures y Triggers_, y _Jason y Bases de datos NOSQL_. Finalmente, concluiremos nuestro informe con una reflexión grupal comparando el uso de las bases de datos SQL y NOSQL.
+
+
+== Descripción del informe
+
+
+=== Descripción de las tablas principales
+
+
+==== Tarjetas de crédito
+
 
 El sistema debe contar con un registro de compras realizadas con cada tarjeta. Cada tarjeta le pertenece a un cliente (a excepción de dos clientes que tendrán dos). Los clientes realizan compras en comercios a través de su tarjeta.
-
-=== Tarjetas de crédito
-
 Las tarjetas de crédito son el medio para realizar una compra. Las tarjetas de crédito no tienen extensiones. 
 Los usuaries no tienen permitido financiar sus compras en cuotas, todo en un solo pago. Una tarjeta de crédito puede ser suspendida
 si recibe dos rechazos por límite de compra en un mismo día.
@@ -33,8 +47,8 @@ Además, las tarjetas presentan las siguientes características:
 * Estado de la tarjeta ("vigente", "suspendida", "anulada").
 
 
+==== Cliente
 
-=== Cliente
 
 Los clientes realizan compras con la tarjeta. Le cliente no puede tener más de una tarjeta.
 Un cliente es alertado por posibles fraudes tales como, realizar una compra en una lapso de tiempo muy bajo en diferentes
@@ -48,7 +62,9 @@ Un cliente tiene las siguientes características:
 * Domicilio.
 * Teléfono.
 
-=== Compra
+
+==== Compra
+
 
 La compra se encarga de guardar los datos que implican dicha acción. Los datos son:
 
@@ -63,13 +79,13 @@ Para finalizar la introducción, este documento tiene como objetivo presentar lo
 Éste contiene un resumen de las principales funciones realizadas en los distintos lenguajes de programación. 
 Además se muestran los problemas encontrados con sus respectivas soluciones.
 
-== Desarrollo
+
+=== Stored Procedures y triggers
+
 
 El sistema fue construido con los lenguajes _Go_ y _Pl/pgSQL_. El modelo de datos relativa a tarjetas de créditos son almacenadas en 
 la base de datos relacional _PostgreSQL_. Por último, en _BoltDB_ se guardan datos de clientes, comercios,
  tarjetas y compras para comparar el modelo relacional con un modelo no relacional (_NoSQL_).
-
-=== Funciones
 
 Las funciones creadas tienen como objetivo vincular al usuarie con la base de datos. La forma de interactuar es a través 
 de una interfaz de líneas de comandos.
@@ -79,9 +95,71 @@ de una interfaz de líneas de comandos.
 Recibe los datos de una posible compra (número de tarjeta, código de seguridad, número de comercio, 
 monto a pagar). La función retorna _true_ si se aprueba y _false_ si ocurre lo contrario.
 
+[source, postgres]
+----
+create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
+declare
+    fecha_actual timestamp := current_timestamp(0);
+    tarjeta record;
+    monto_total decimal:= p_monto;
+begin
+
+    if ((select count(*) from compra where nrotarjeta = nro_tarjeta ) > 0) then --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
+        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta); --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
+    end if;
+    
+    select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
+    if  not found then 
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+        return false;
+    
+    elsif cod_seguridad != tarjeta.codseguridad then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+        return false;
+    
+    elsif (monto_total > tarjeta.limitecompra) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
+        return false;
+    
+    elsif (select verificar_vigencia((tarjeta.validahasta))) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+        return false;
+
+    elsif 'suspendida' = (tarjeta.estado) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+        return false;
+
+    else
+        --se autoriza la compra
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, false);
+        return true;
+    end if;
+end;
+$$ language plpgsql;
+----
+
 Para autorizar una compra la función controla que se cumplan los siguientes requisitos: La tarjeta debe existir y debe estar 
 en vigencia. La compra no debe superar el límite de compra (para eso se le suma las anteriores compras). La terjeta
 no debe estar suspendida.
+
+Para ello, usa una función auxiliar llamada _verificar_vigencia_.
+
+[source, postgres]
+----
+create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
+declare
+     fecha_actual date :=to_date(to_char(current_date,'YYYYMM'),'YYYYMM'); --extrae el año y mes de la fecha actual en formato date
+     fecha_tarjeta date:=to_date(fecha_vencimiento, 'YYYYMM'); --extrae el año y mes de la fecha de vencimiento de la tarjeta en formato date
+begin
+     if (fecha_tarjeta <= fecha_actual) then --si la fecha es menor a la fecha actual esta vencida.
+        return true;
+     end if;
+return false;
+end;
+$$ language plpgsql;
+----
+
+ESta función, devuelve el booleano correspondiente a si la tarjeta es vigente o no.
 
 * _func_generar_resumen
 
@@ -93,15 +171,99 @@ Esta función es ejecutada cuando se genera un rechazo al autorizar la compra. S
 tabla de alertas. Si un cliente tuvo dos rechazos por superar el límite de compra en un día, la función establece una
 suspensión de la tarjeta seguido de una alerta.
 
-* _func_alerta_compra
+[source, postgres]
+----
+create or replace function func_alerta_rechazo() returns trigger as $$
+declare
+    undia interval := '24:00:00';
+    i record;
+begin
+    insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+    values(new.nrotarjeta, new.fecha, new.nrorechazo, 0, 'se produjo un rechazo');
+
+    for i in select * from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' loop 
+        if (new.fecha - i.fecha) < undia then
+            update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
+            
+            insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+            values(new.nrotarjeta, new.fecha, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+        end if; 
+    end loop;   
+    return new;
+end;
+$$ language plpgsql;
+----
+
+Esta función es ejecutada por el trigger _rechazo_trig_:
+
+[source, postgres]
+----
+create trigger rechazo_trg
+after insert on rechazo
+for each row
+execute procedure func_alerta_rechazo();
+----
+
+* _func_alerta_compra_
 
 Esta función es ejecutada cuando se realiza una compra. Controla que no se realicen dos compras en un lapso menor a 1 minuto 
 es dentro del código postal y un lapso de 5 minutos de en fuera del código postal. En caso de que se cumpla, la función registra 
 la alerta._
 
+[source, postgres]
+----
+create function func_alerta_compra() returns trigger as $$
+declare
+    unminuto interval := '00:01:00';
+    cincominutos interval := '00:05:00';
 
+    i record;
+    j record;
 
-== Problemas encontrados
+begin
+    if (select count(*) from compra where nrotarjeta = new.nrotarjeta) > 1 then
+            
+        for i in select * from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+            (select nrocomercio from comercio where nrocomercio != new.nrocomercio and codigopostal = 
+             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
+
+            if (new.fecha - i.fecha) <= unminuto then
+            
+                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+                values(new.nrotarjeta, new.fecha, null, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
+         
+            end if;
+        end loop;
+
+               
+        for j in select fecha from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+            (select nrocomercio from comercio where codigopostal != 
+             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
+
+            if (new.fecha - j.fecha) <= cincominutos then
+
+                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+                values(new.nrotarjeta, new.fecha, null, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
+            
+            end if;
+        end loop;
+    end if;
+    return new;
+end;
+$$ language plpgsql;
+----
+
+Esta función es ejecutada por el trigger
+
+[source, postgres]
+----
+create trigger compra_trg
+after insert on compra
+for each row
+execute procedure func_alerta_compra();
+----
+
+==== Problemas encontrados
 
 * Un problema que se presentó fue que cuando se intentó hacer los triggers no se sabía cómo hacer para que recorra
  la tabla para tomar los valores de las fechas para comparar. En un principio se intentó hacer una clausura que dé las fechas 
@@ -115,8 +277,16 @@ teníamos el dato del _nrorechazo_ porque el trigger se activaba cuando se reliz
 verificando que el valor del campo _monto_ se encuentre vacío y entonces tiraba error a la hora de calcular la suma total de 
 las compras previas mas el valor del nuevo monto, la solución fue controlar que existan compras previas para una determinada
  tarjeta antes de realizar la suma.
- 
-== Comparación entre SQL y NoSQL
+
+* También se presentaron problemas al realizar la función _genera_resumen_. Al principio se realizaron funciones auxiliares con la finalidad
+de extraer la información necesaria para complatar las tablas _cabecera_ y _detalle_, guardándola en una tabla que luego usaríamos como auxiliar. 
+Luego, comprendimos que esta forma no era la más óptima y decidimos ir seleccionando la información a medida que se consultaban las 
+tablas expuestas. De esta manera, el código presentado muestra una mayor claridad y compacidad.  
+
+=== Jason y bases de datos NoSQL
+
+
+== Conclusión
 
 
 
