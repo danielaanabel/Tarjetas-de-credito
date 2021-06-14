@@ -1,24 +1,39 @@
-= Universidad Nacional de General Sarmiento - Base de datos
-Trabajo Práctico
-Ferreyra Fernando <email>; Goñes Elías <email>; Oviedo Daniela <email>; SEgretín Romina <romisegretin@gmail.com>
+= Universidad Nacional de General Sarmiento - Base de datos- Trabajo Práctico
+Ferreyra Fernando <email>; Goñes Elías <email>; Oviedo Daniela <email>; Segretín Romina <romisegretin@gmail.com>
 v1, {docdate}
 
 :toc:
 :toc-title: Contenidos
 :numbered:
 
+==Integrantes
+
+Ferreyra Fernando
+
+Goñes Elías
+
+Oviedo Daniela
+
+Segretín Romina
+
+
 == Introducción
+
 
 En el presente informe nos proponemos explicar el proceso transcurrido para dar respuesta a una situación planteada en el marco de la materia
 _Bases de datos 1_. Contaremos los pasos realizados y dificultades en la realización de la base de datos que modeliza el almacenamiento
 de información relativa a tarjetas de crédito, en la creación del archivo CLI implementado en go y en la creación de otra base de datos BoltDB, también desde la aplicación CLI.
 Desarrollaremos nuestra explicación en tres partes: _descripción de las tablas principales_, _Stored Procedures y Triggers_, y _Jason y Bases de datos NOSQL_. Finalmente, concluiremos nuestro informe con una reflexión grupal comparando el uso de las bases de datos SQL y NOSQL.
 
+
 == Descripción del informe
+
 
 ===Descripción de las tablas principales
 
+
 ====Tarjetas de crédito
+
 
 El sistema debe contar con un registro de compras realizadas con cada tarjeta. Cada tarjeta le pertenece a un cliente (a excepción de dos clientes que tendrán dos). Los clientes realizan compras en comercios a través de su tarjeta.
 Las tarjetas de crédito son el medio para realizar una compra. Las tarjetas de crédito no tienen extensiones. 
@@ -33,7 +48,9 @@ Además, las tarjetas presentan las siguientes características:
 * Límite de compra.
 * Estado de la tarjeta ("vigente", "suspendida", "anulada").
 
+
 ==== Cliente
+
 
 Los clientes realizan compras con la tarjeta. Le cliente no puede tener más de una tarjeta.
 Un cliente es alertado por posibles fraudes tales como, realizar una compra en una lapso de tiempo muy bajo en diferentes
@@ -47,7 +64,9 @@ Un cliente tiene las siguientes características:
 * Domicilio.
 * Teléfono.
 
+
 ==== Compra
+
 
 La compra se encarga de guardar los datos que implican dicha acción. Los datos son:
 
@@ -62,13 +81,17 @@ Para finalizar la introducción, este documento tiene como objetivo presentar lo
 Éste contiene un resumen de las principales funciones realizadas en los distintos lenguajes de programación. 
 Además se muestran los problemas encontrados con sus respectivas soluciones.
 
+
 === Stored Procedures y triggers
+
 
 El sistema fue construido con los lenguajes _Go_ y _Pl/pgSQL_. El modelo de datos relativa a tarjetas de créditos son almacenadas en 
 la base de datos relacional _PostgreSQL_. Por último, en _BoltDB_ se guardan datos de clientes, comercios,
  tarjetas y compras para comparar el modelo relacional con un modelo no relacional (_NoSQL_).
 
+
 ==== Funciones
+
 
 Las funciones creadas tienen como objetivo vincular al usuarie con la base de datos. La forma de interactuar es a través 
 de una interfaz de líneas de comandos.
@@ -125,6 +148,25 @@ Para autorizar una compra la función controla que se cumplan los siguientes req
 en vigencia. La compra no debe superar el límite de compra (para eso se le suma las anteriores compras). La terjeta
 no debe estar suspendida.
 
+Para ello, usa una función auxiliar llamada _verificar_vigencia_.
+
+[source, postgres]
+----
+create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
+declare
+     fecha_actual date :=to_date(to_char(current_date,'YYYYMM'),'YYYYMM'); --extrae el año y mes de la fecha actual en formato date
+     fecha_tarjeta date:=to_date(fecha_vencimiento, 'YYYYMM'); --extrae el año y mes de la fecha de vencimiento de la tarjeta en formato date
+begin
+     if (fecha_tarjeta <= fecha_actual) then --si la fecha es menor a la fecha actual esta vencida.
+        return true;
+     end if;
+return false;
+end;
+$$ language plpgsql;
+----
+
+ESta función, devuelve el booleano correspondiente a si la tarjeta es vigente o no.
+
 * _func_generar_resumen
 
 Recibe los datos del cliente con su período del año y genera un resumen con todas las compras y el total a pagar.
@@ -135,13 +177,97 @@ Esta función es ejecutada cuando se genera un rechazo al autorizar la compra. S
 tabla de alertas. Si un cliente tuvo dos rechazos por superar el límite de compra en un día, la función establece una
 suspensión de la tarjeta seguido de una alerta.
 
-* _func_alerta_compra
+[source, postgres]
+----
+create or replace function func_alerta_rechazo() returns trigger as $$
+declare
+    undia interval := '24:00:00';
+    i record;
+begin
+    insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+    values(new.nrotarjeta, new.fecha, new.nrorechazo, 0, 'se produjo un rechazo');
+
+    for i in select * from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' loop 
+        if (new.fecha - i.fecha) < undia then
+            update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
+            
+            insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+            values(new.nrotarjeta, new.fecha, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
+        end if; 
+    end loop;   
+    return new;
+end;
+$$ language plpgsql;
+----
+
+Esta función es ejecutada por el trigger _rechazo_trig_:
+
+[source, postgres]
+----
+create trigger rechazo_trg
+after insert on rechazo
+for each row
+execute procedure func_alerta_rechazo();
+----
+
+* _func_alerta_compra_
 
 Esta función es ejecutada cuando se realiza una compra. Controla que no se realicen dos compras en un lapso menor a 1 minuto 
 es dentro del código postal y un lapso de 5 minutos de en fuera del código postal. En caso de que se cumpla, la función registra 
 la alerta._
 
+[source, postgres]
+----
+create function func_alerta_compra() returns trigger as $$
+declare
+    unminuto interval := '00:01:00';
+    cincominutos interval := '00:05:00';
 
+    i record;
+    j record;
+
+begin
+    if (select count(*) from compra where nrotarjeta = new.nrotarjeta) > 1 then
+            
+        for i in select * from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+            (select nrocomercio from comercio where nrocomercio != new.nrocomercio and codigopostal = 
+             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
+
+            if (new.fecha - i.fecha) <= unminuto then
+            
+                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+                values(new.nrotarjeta, new.fecha, null, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
+         
+            end if;
+        end loop;
+
+               
+        for j in select fecha from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
+            (select nrocomercio from comercio where codigopostal != 
+             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
+
+            if (new.fecha - j.fecha) <= cincominutos then
+
+                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
+                values(new.nrotarjeta, new.fecha, null, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
+            
+            end if;
+        end loop;
+    end if;
+    return new;
+end;
+$$ language plpgsql;
+----
+
+Esta función es ejecutada por el trigger
+
+[source, postgres]
+----
+create trigger compra_trg
+after insert on compra
+for each row
+execute procedure func_alerta_compra();
+----
 
 ==== Problemas encontrados
 
@@ -158,7 +284,9 @@ verificando que el valor del campo _monto_ se encuentre vacío y entonces tiraba
 las compras previas mas el valor del nuevo monto, la solución fue controlar que existan compras previas para una determinada
  tarjeta antes de realizar la suma.
  
+
 === Jason y bases de datos NoSQL
+
 
 ==Conclusión
 
