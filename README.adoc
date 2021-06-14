@@ -98,10 +98,10 @@ Recibe los datos de una posible compra (número de tarjeta, código de seguridad
 monto a pagar). La función retorna _true_ si se aprueba y _false_ si ocurre lo contrario.
 
 Para autorizar una compra la función controla que se cumplan los siguientes requisitos: La tarjeta debe existir y debe estar 
-en vigencia. La compra no debe superar el límite de compra (para eso se le suma las anteriores compras). La terjeta
-no debe estar suspendida.
+en vigencia. La compra no debe superar el límite de compra (para eso se le suma las anteriores compras). La tarjeta
+no debe estar suspendida, ni encontrarse anulada para eso agregamos una condición mas que verifica ese estado.
 
-ESta función, devuelve el booleano correspondiente a si la tarjeta es vigente o no.
+Esta función, utiliza una función auxiliar que verifica la vigencia de las tarjetas y en caso que devuelva false no se autoriza la compra.
 
 * _func_generar_resumen
 
