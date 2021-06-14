@@ -1,6 +1,6 @@
 = Universidad Nacional de General Sarmiento - Base de datos- Trabajo Práctico
 Trabajo Práctico
-toc::[]
+:toc: left
 :toc-title: Contenidos
 :numbered:
 
