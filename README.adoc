@@ -1,7 +1,4 @@
 = Universidad Nacional de General Sarmiento - Base de datos- Trabajo Práctico
-Ferreyra Fernando <email>; Goñes Elías <email>; Oviedo Daniela <email>; Segretín Romina <romisegretin@gmail.com>
-v1, {docdate}
-
 :toc:
 :toc-title: Contenidos
 :numbered:
@@ -88,10 +85,6 @@ Además se muestran los problemas encontrados con sus respectivas soluciones.
 El sistema fue construido con los lenguajes _Go_ y _Pl/pgSQL_. El modelo de datos relativa a tarjetas de créditos son almacenadas en 
 la base de datos relacional _PostgreSQL_. Por último, en _BoltDB_ se guardan datos de clientes, comercios,
  tarjetas y compras para comparar el modelo relacional con un modelo no relacional (_NoSQL_).
-
-
-==== Funciones
-
 
 Las funciones creadas tienen como objetivo vincular al usuarie con la base de datos. La forma de interactuar es a través 
 de una interfaz de líneas de comandos.
@@ -283,7 +276,11 @@ teníamos el dato del _nrorechazo_ porque el trigger se activaba cuando se reliz
 verificando que el valor del campo _monto_ se encuentre vacío y entonces tiraba error a la hora de calcular la suma total de 
 las compras previas mas el valor del nuevo monto, la solución fue controlar que existan compras previas para una determinada
  tarjeta antes de realizar la suma.
- 
+
+* También se presentaron problemas al realizar la función _genera_resumen_. Al principio se realizaron funciones auxiliares con la finalidad
+de extraer la información necesaria para complatar las tablas _cabecera_ y _detalle_, guardándola en una tabla que luego usaríamos como auxiliar. 
+Luego, comprendimos que esta forma no era la más óptima y decidimos ir seleccionando la información a medida que se consultaban las 
+tablas expuestas. De esta manera, el código presentado muestra una mayor claridad y compacidad.  
 
 === Jason y bases de datos NoSQL
 
