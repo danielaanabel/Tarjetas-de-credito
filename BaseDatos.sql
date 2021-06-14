@@ -206,8 +206,14 @@ insert into consumo values('4286283215095190', '114', 2, 1000.00);--2 compras en
 insert into consumo values('5425807573408337', '879', 20, 44000.00);--compra supera el limite de la tarjeta
 insert into consumo values('5425807573408337', '879', 20, 44000.00);--segunda vez rechazada por exceso del limite
 
+insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('5425758312840399', 2, '2021/06/15 13:00:00.59', 500.00, false);
+insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('5425758312840399', 3, '2021/06/10 13:00:00.59', 859.45, false);
+insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('342888106007110', 4, '2021/06/08 13:00:00.59', 8987.45, false);
+insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('342888106007110', 5, '2021/06/20 13:00:00.59', 859.45, false);
+insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('4286283215095190', 6, '2021/03/10 13:00:00.59', 700.45, false);
+insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('4286283215095190', 7, '2020/12/29 13:00:00.59', 859.45, false);
+insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('4286283215095190', 8, '2021/01/01 13:00:00.59', 859.45, false);
 
---funcion para hacer los insert en la tabla cierre
 --funcion para hacer los insert en la tabla cierre
 create or replace function llenar_cierre() returns void as $$
 declare
@@ -377,8 +383,8 @@ declare
 begin
     select * into dato_cliente from cliente where nrocliente = nro_cliente;
     --para cada tarjeta del cliente hacemos...
-    for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  
-                                                                                       --obtener la terminacion de esa tarjeta
+    for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop--obtener la terminacion de esa tarjeta 
+                                                                                       
         select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int))
         and mes = periodo_mes;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
@@ -431,7 +437,7 @@ $$ language plpgsql;
 
 
 select llenar_cierre();
-select * from cierre;
+
 
 select realizar_compras();
 
@@ -441,7 +447,7 @@ select * from alerta;
 
 select * from compra where nrotarjeta = '5425758312840399';
 
-select generar_resumen(18, 2021, 6);
+select generar_resumen(1, 2021, 3);
 
 select * from cabecera;
 
