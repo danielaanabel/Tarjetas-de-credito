@@ -359,22 +359,33 @@ declare
     dato_cierre record;
     total_a_pagar decimal(8,2);
     fila_compras record;
+    nro_resumen int;
     cont int := 1;
 begin
     select * into dato_cliente from cliente where nrocliente = nro_cliente;
    
     for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  --para cada tarjeta del cliente hacemos...
-     
+        
+        --obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
         select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int)) 
-        and mes = (select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int));--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
-                total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and dato_cierre.mes = (select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int))); --sumamos el total de compras para esa tarjeta 
+        and mes = (select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int));
 
-                insert into cabecera values (1,dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
-                       dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
+        --sumamos el total de compras para esa tarjeta
+        total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and dato_cierre.mes = 
+        (select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int)));  
+
+        nro_resumen :=(select count(*) from cabecera)+1;
+
+        insert into cabecera values (nro_resumen, dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
+                dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar); 
+
         for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta loop
-          insert into detalle (nroresumen, nrolinea, fecha, nombrecomercio, monto)
-             values (1, cont, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
-             cont := cont + 1;
+                       
+            insert into detalle (nroresumen, nrolinea, fecha, nombrecomercio, monto)
+            values (nro_resumen, cont, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
+            
+            cont := cont + 1;
+       
         end loop;
         cont := 1;
     end loop;
