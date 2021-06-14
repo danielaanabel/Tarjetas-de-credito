@@ -32,8 +32,7 @@ func mostrar_opciones() {
 	fmt.Println("3- Ingresar datos a las tablas")
 	fmt.Println("4- Crear funciones")
 	fmt.Println("5- Realizar compras")
-	fmt.Println("6- Cargar datos a bolt.db")
-	fmt.Println("7- Salir\n")
+	fmt.Println("6- Salir\n")
 }
 
 //funcion que detecta la opción elegida a ejecutar---------------------------------------------------------
@@ -68,11 +67,7 @@ func ejecutar_opcion(opcion_elegida int) {
 
 	} else if opcion_elegida == 6 {
 
-		escribir_en_bolt()
-
-	} else if opcion_elegida == 7 {
-
-		fmt.Println("###### Fin ######")
+	fmt.Println("###### Fin ######")
 
 	} else {
 
