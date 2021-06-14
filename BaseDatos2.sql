@@ -365,10 +365,9 @@ begin
    
     for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  --para cada tarjeta del cliente hacemos...
      
-        select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int));--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo
-        --if (SELECT EXTRACT(MONTH FROM date (dato_cierre.fechainicio))) = (SELECT EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) then
-               
-                total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta); --sumamos el total de compras para esa tarjeta 
+        select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int)) 
+        and mes = (select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int));--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
+                total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and dato_cierre.mes = (select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int))); --sumamos el total de compras para esa tarjeta 
 
                 insert into cabecera values (1,dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
                        dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
@@ -378,7 +377,6 @@ begin
              cont := cont + 1;
         end loop;
         cont := 1;
-        --end if;
     end loop;
 end;
 $$ language plpgsql;
