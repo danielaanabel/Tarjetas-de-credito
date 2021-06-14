@@ -172,8 +172,8 @@ func conectar_con_bdd() *sql.DB {
 func crear_tablas() {
 
 	db := conectar_con_bdd() // conectamos a nuestra base de datos
-	//defer db.Close()         // alterminar de ejecutar todo lo que esta en el cuerpo de esta funcion se cierra la bdd hay que hacer esto
-	// en cada funcion que creemos.
+	defer db.Close()         
+	
 	
 	_, err := db.Exec(`create table cliente(nrocliente int, nombre text, apellido text, domicilio text, telefono char(12));
 
@@ -212,7 +212,7 @@ create table consumo(nrotarjeta char(16), codseguridad char(4), nrocomercio int,
 func crear_pk_fk(){
 	
 		db := conectar_con_bdd()
-		
+		defer db.Close()
 		
 		_,err := db.Exec(`alter table cliente  add constraint cliente_pk  primary key (nrocliente);
 alter table tarjeta  add constraint tarjeta_pk  primary key (nrotarjeta);
@@ -366,6 +366,7 @@ func crear_todas_las_funciones(){
 func crear_funcierre(){
 	
 		db := conectar_con_bdd()
+		defer db.Close()
 		
 		_,err := db.Exec(`create or replace function funcierre() returns void as $$
 declare
@@ -405,6 +406,7 @@ $$ language plpgsql;`)
 func crear_funcion_autorizar_compra(){
 	
 	db := conectar_con_bdd()
+	defer db.Close()
 	
 	_,err := db.Exec(`create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
 declare
@@ -461,6 +463,7 @@ if err != nil{
 func crear_func_alerta_rechazo(){
 
 	db := conectar_con_bdd()
+	defer db.Close()
 	
 	_,err:= db.Exec(`create or replace function func_alerta_rechazo() returns trigger as $$
 declare
@@ -500,6 +503,7 @@ execute procedure func_alerta_rechazo();`)
 func crear_func_alerta_compra(){
 	
 	db := conectar_con_bdd()
+	defer db.Close()
 	
 	_,err := db.Exec(`create function func_alerta_compra() returns trigger as $$
 declare
@@ -558,6 +562,7 @@ execute procedure func_alerta_compra();`)
 func crear_funcion_realizar_compras(){
 		
 		db := conectar_con_bdd()
+		defer db.Close()
 		
 		_,err := db.Exec(`create or replace function realizar_compras() returns void as $$
 declare
@@ -581,6 +586,7 @@ $$ language plpgsql;`)
 func crear_generar_resumen(){
 	
 	db := conectar_con_bdd()
+	defer db.Close()
 	
 	_, err := db.Exec(`create or replace function generar_resumen(nro_cliente int, periodo char(6)) returns void as $$
 declare
@@ -626,6 +632,7 @@ $$ language plpgsql;`)
 func crear_verificar_vigencia(){
 	
 	db := conectar_con_bdd()
+	defer db.Close()
 	
 	_,err := db.Exec(`create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
 declare
@@ -650,6 +657,8 @@ $$ language plpgsql;`)
 func realizar_compras(){
 
 	db := conectar_con_bdd()
+	defer db.Close()
+	
 	_,err := db.Exec(`select realizar_compras()`)
 	
 	if err != nil {
