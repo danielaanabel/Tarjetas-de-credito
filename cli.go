@@ -6,8 +6,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/lib/pq"
 	"log"
+
+	_ "github.com/lib/pq"
 )
 
 //main----------------------------------------------------------------------------------------------------
@@ -65,10 +66,10 @@ func ejecutar_opcion(opcion_elegida int) {
 
 		realizar_compras()
 		main()
-		
+
 	} else if opcion_elegida == 6 {
-		
-		generar_resumen()	
+
+		generar_resumen()
 
 	} else if opcion_elegida == 7 {
 
@@ -559,7 +560,7 @@ begin
         and mes = periodo_mes;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
         --sumamos el total de compras para esa tarjeta y ese periodo
-        total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes) and pagado = false; 
+        total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes and pagado = false); 
 
         insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
         values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
@@ -634,21 +635,21 @@ func realizar_compras() {
 		log.Fatal(err)
 	}
 	fmt.Printf("\n### Compras realizadas ###\n")
-	
+
 	//Hago el cierre
-	_,err1 := db.Exec(`select llenar_cierre()`)
+	_, err1 := db.Exec(`select llenar_cierre()`)
 	if err != nil {
 		log.Fatal(err1)
 	}
 
 }
 
-func generar_resumen(){
-	
+func generar_resumen() {
+
 	db := conectar_con_bdd()
 	defer db.Close()
-	
-	_,err := db.Exec(`select generar_resumen(1,2021,3)`)
+
+	_, err := db.Exec(`select generar_resumen(1,2021,3)`)
 
 	if err != nil {
 		log.Fatal(err)

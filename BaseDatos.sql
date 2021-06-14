@@ -389,7 +389,7 @@ begin
         and mes = periodo_mes;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
         --sumamos el total de compras para esa tarjeta y ese periodo
-        total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes) and pagado = false; 
+        total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes and pagado = false); 
 
         insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
         values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
