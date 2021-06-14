@@ -153,7 +153,7 @@ insert into tarjeta values('4916197097056062', 5, '202010', '202509', '103', 450
 insert into tarjeta values('4532157860627139', 6, '202004', '202503', '802', 42000.00, 'anulada');
 insert into tarjeta values('4449942525596585', 7, '202010', '202509', '552', 12000.00, 'vigente');
 insert into tarjeta values('4929028998516745', 8, '201610', '202109', '412', 11000.00, 'suspendida');
-insert into tarjeta values('4916558526474988', 9, '201604', '202103', '633', 65000.00, 'anulada');--vencida
+insert into tarjeta values('4916558526474988', 9, '201604', '202103', '633', 65000.00, 'vencida');
 insert into tarjeta values('4456844734152285', 10, '201707', '202206', '853', 35000.00, 'anulada');
 insert into tarjeta values('5305073210930499', 11, '201707', '202206', '271', 14000.00, 'vigente');
 insert into tarjeta values('5115874922952014', 12, '202008', '202507', '647', 70000.00, 'suspendida');
@@ -195,7 +195,7 @@ insert into comercio values(20, 'Cinemark', 'Constituyentes 2078', 'B1620MVU', '
 insert into consumo values('4716905901199213', '311', 10, 750.00);
 insert into consumo values('5305073210930499', '271', 6, 1500.00);
 insert into consumo values('5535292533476491', '876', 1, 3000.00);
-insert into consumo values('4916197097056062', '103', 11, 500.00);--anulada no la estamos controlando
+insert into consumo values('4916197097056062', '103', 11, 500.00);--anulada
 insert into consumo values('5425758312840399', '881', 15, 1000.00);
 insert into consumo values('4449942525596585', '552', 12, 2000.00);
 insert into consumo values('4286283215095190', '114', 14, 550.00);
@@ -247,7 +247,7 @@ declare
 begin
 
     if ((select count(*) from compra where nrotarjeta = nro_tarjeta ) > 0) then --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
-        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta); --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
+        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta and pagado = false); --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
     end if;
     
     select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
@@ -271,9 +271,12 @@ begin
         insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
         return false;
 
+    elsif 'anulada' = (tarjeta.estado) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra anulada');
+        return false;
+
     else
-        --se autoriza la compra
-        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, false);
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, false);--se autoriza la compra
         return true;
     end if;
 end;
