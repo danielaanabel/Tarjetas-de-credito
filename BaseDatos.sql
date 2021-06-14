@@ -210,7 +210,7 @@ insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('54257
 insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('5425758312840399', 3, '2021/06/10 13:00:00.59', 859.45, false);
 insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('342888106007110', 4, '2021/06/08 13:00:00.59', 8987.45, false);
 insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('342888106007110', 5, '2021/06/20 13:00:00.59', 859.45, false);
-insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('4286283215095190', 6, '2021/03/10 13:00:00.59', 700.45, false);
+insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('4286283215095190', 6, '2021/03/10 13:00:00.59', 700.45, true);
 insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('4286283215095190', 7, '2020/12/29 13:00:00.59', 859.45, false);
 insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values('4286283215095190', 8, '2021/01/01 13:00:00.59', 859.45, false);
 
@@ -389,13 +389,13 @@ begin
         and mes = periodo_mes;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
         --sumamos el total de compras para esa tarjeta y ese periodo
-        total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes); 
+        total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes) and pagado = false; 
 
         insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
         values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
                dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
                        
-        for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes loop
+        for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes and pagado = false loop
             
             insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta), contador_linea, fila_compras.fecha, 
                                         (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
