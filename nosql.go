@@ -198,6 +198,17 @@ func cargar_datos() {
 
 	resultado7, err := ReadUnique(dbb, "tarjeta1", []byte(tarjeta1.Nrotarjeta))
 	fmt.Printf("%s\n", resultado7)
+	resultado8, err := ReadUnique(dbb, "tarjeta2", []byte(tarjeta2.Nrotarjeta))
+	fmt.Printf("%s\n", resultado8)
+	resultado9, err := ReadUnique(dbb, "tarjeta3", []byte(tarjeta3.Nrotarjeta))
+	fmt.Printf("%s\n", resultado9)
+	
+	resultado10, err := ReadUnique(dbb, "compra1", []byte(strconv.Itoa(compra1.Nrooperacion)))
+	fmt.Printf("%s\n", resultado10)
+	resultado11, err := ReadUnique(dbb, "compra2", []byte(strconv.Itoa(compra2.Nrooperacion)))
+	fmt.Printf("%s\n", resultado11)
+	resultado12, err := ReadUnique(dbb, "compra3", []byte(strconv.Itoa(compra3.Nrooperacion)))
+	fmt.Printf("%s\n", resultado12)
 
 }
 
