@@ -645,11 +645,11 @@ func realizar_compras() {
 }
 
 func generar_resumen() {
-
+	
 	db := conectar_con_bdd()
 	defer db.Close()
 
-	_, err := db.Exec(`select generar_resumen(1,2021,3)`)
+	_, err := db.Exec(`select generar_resumen(1,2010,6)`)
 
 	if err != nil {
 		log.Fatal(err)
