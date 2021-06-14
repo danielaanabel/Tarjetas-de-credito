@@ -69,7 +69,7 @@ create table cabecera(
 );
 
 create table detalle(
-    nroresumen  serial,
+    nroresumen  int,
     nrolinea    int,
     fecha   date,
     nombrecomercio text,
@@ -191,19 +191,19 @@ insert into comercio values(18, 'Supermercado Puma', 'Cordoba 212', 'B1610GBF', 
 insert into comercio values(19, 'Aberturas Pepe', '9 de Julio 3004', 'C1040JUG', '541126897468');
 insert into comercio values(20, 'Cinemark', 'Constituyentes 2078', 'B1620MVU', '541128969864');
 
-
 --consumos
 insert into consumo values('4716905901199213', '311', 10, 750.00);
 insert into consumo values('5305073210930499', '271', 6, 1500.00);
 insert into consumo values('5535292533476491', '876', 1, 3000.00);
+insert into consumo values('4916197097056062', '103', 11, 500.00);--anulada no la estamos controlando
 insert into consumo values('5425758312840399', '881', 15, 1000.00);
 insert into consumo values('4449942525596585', '552', 12, 2000.00);
-insert into consumo values('4916197097056062', '103', 11, 500.00);--anulada
+insert into consumo values('4286283215095190', '114', 14, 550.00);
 insert into consumo values('4449942525596585', '411', 2, 12000.00);--tarjeta mal codigo de seguridad
 insert into consumo values('4916558526474988', '633', 4, 3000.00);--tarjeta vencida 
 insert into consumo values('4929028998516745', '412', 5, 5000.00);--tarjeta suspendida
 insert into consumo values('4286283215095190', '114', 1, 1000.00);
-insert into consumo values('4286283215095190', '114', 2, 1000.00);--2 compras en menos de un minuto en comercios distintos mismo CP
+insert into consumo values('4286283215095190', '114', 1, 1000.00);--2 compras en menos de un minuto en comercios distintos mismo CP
 insert into consumo values('5425807573408337', '879', 20, 44000.00);--compra supera el limite de la tarjeta
 insert into consumo values('5425807573408337', '879', 20, 44000.00);--segunda vez rechazada por exceso del limite
 
@@ -211,7 +211,7 @@ insert into consumo values('5425807573408337', '879', 20, 44000.00);--segunda ve
 
 
 --funcion para hacer los insert en la tabla cierre
-create or replace function funcierre() returns void as $$
+create or replace function llenar_cierre() returns void as $$
 declare
 	i int :=0;
 	j int :=0;
@@ -224,7 +224,7 @@ begin
 for i in i..n loop
     for j in j..m loop
         insert into cierre values(2021, j+1, i, fecha_inicio, fecha_cierre, fecha_vencimiento);
-        if (EXTRACT(ISOYEAR FROM fecha_vencimiento) = 2022) then
+        if (extract(year from fecha_vencimiento) = 2022) then
             fecha_inicio := fecha_inicio - cast('11 month' as interval);
             fecha_cierre := fecha_cierre - cast('11 month' as interval);
             fecha_vencimiento := fecha_vencimiento - cast('11 month' as interval);
@@ -273,7 +273,7 @@ begin
 
     else
         --se autoriza la compra
-        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, true);
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, false);
         return true;
     end if;
 end;
@@ -351,194 +351,40 @@ after insert on compra
 for each row
 execute procedure func_alerta_compra();
 
---Función auxiliar que guarda en la tabla dato_cliente la info del cliente
-create or replace function guarda_cliente(num_cliente int) returns 
-table (nrocliente int, nombre text, apellido text, domicilio text ) as $$
+--función para generar el resumen de les clientes
+create or replace function generar_resumen(nro_cliente int, periodo_año int, periodo_mes int) returns void as $$
 declare
-nrocliente int;
-nombre text; 
-apellido text; 
-domicilio text;
+    dato_cliente record;
+    tarjeta_cliente record;
+    dato_cierre record;
+    total_a_pagar decimal(8,2);
+    fila_compras record;
+    contador_linea int := 1;
+   
 begin
-    create table dato_cliente (
-        nrocliente int,
-        nombre text, 
-        apellido text, 
-        domicilio text
-    );
-alter table dato_cliente  add constraint dato_cliente_pk  primary key (nrocliente);
-    insert into dato_cliente select cliente.nrocliente, cliente.nombre, cliente.apellido, cliente.domicilio from cliente where (num_cliente = (select cliente.nrocliente));
-end;
-$$ language plpgsql;
+    select * into dato_cliente from cliente where nrocliente = nro_cliente;
+   
+    for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  --para cada tarjeta del cliente hacemos...
+        
+        select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int))--obtener la terminacion de esa tarjeta
+        and mes = periodo_mes;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
---Función auxiliar que guarda en la tabla 
-create or replace function guarda_tarjeta(num_cliente int) returns 
-table (nrotarjeta char(16), nrocliente int) as $$
-declare
-    nrotarjeta char(16);
-    nrocliente int;
-begin
-    create table tarjetacliente (
-        nrotarjeta char(16),
-        nrocliente int
-    );
-alter table tarjetacliente  add constraint tarjetacliente_pk  primary key (nrotarjeta);
-    insert into tarjetacliente select tarjeta.nrotarjeta, tarjeta.nrocliente from tarjeta 
-    where (num_cliente = tarjeta.nrocliente);
-end;
-$$ language plpgsql;
+                total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes); --sumamos el total de compras para esa tarjeta y ese periodo
 
---Función auxiliar que guarda los datos de la tarjeta en la tabla dato_cierre-- cambio nombres CAMBIAR EN LAS OTRAS
---PROBLEMA- ME SALTABA ERROR PORQUE SE MENCIONABA A VARIABLES CON EL MISMO NOMBRE DE DISTINTAS TABLAS
-create or replace function guarda_datos_tarjeta() returns 
-table (ntarjeta char(16), ncliente int, naño int, nmes int, nterminacion int, ffechainicio date, ffechacierre date,
-    fechavto date) as $$
-declare
-    ntarjeta char(16);
-    ncliente int;
-    naño int;
-    nmes int;
-    nterminacion int;
-    ffechainicio date;
-    ffechacierre date;
-    ffechavto date;
-    fila_a record;
-    fila_b record;
-begin
-    create table dato_cierre (
-        ntarjeta char(16),
-        ncliente int,
-        naño int,
-        nmes int,
-        nterminacion int,
-        ffechainicio date,
-        ffechacierre date,
-        ffechavto date
-    );
-    --SALTA ERROR PORQUE SE USAN NOMBRES "AMBIGÜOS"
-alter table dato_cierre  add constraint dato_cierre_pk  primary key (naño, nmes, nterminacion);
-    for fila_a in select * from cierre loop
-        for fila_b in select * from tarjetacliente loop
-                insert into dato_cierre select nrotarjeta, nrocliente, año, mes, 
-                terminacion, fechainicio, fechacierre, cierrefechavto from (select * from tarjetacliente, cierre) as dato_cierre
-                where (cierre.terminacion = cast (substr (tarjetacliente.nrotarjeta, length(tarjetacliente.nrotarjeta), 
-                length(tarjetacliente.nrotarjeta)) as int));
+                insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
+                values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
+                       dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
+                       
+        for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and (extract(month from fecha)) = periodo_mes loop
+          insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta),
+           contador_linea, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
+             contador_linea := contador_linea + 1;
         end loop;
+        contador_linea := 1;
     end loop;
 end;
 $$ language plpgsql;
 
---guardando compras en la tabla compra_cliente
-create or replace function guarda_compras(numperiodo text) returns 
-table (nrotarjeta char(16), nrocomercio int, fecha timestamp, monto decimal (7,2), pagado boolean) as $$
-declare
-    nrotarjeta text;
-    nrocomercio int; 
-    fecha timestamp; 
-    monto decimal (7,2); 
-    pagado boolean;
-    fila record;
-    filas record;
-begin
-    create table compra_cliente (
-        nrotarjeta char(16),
-        nrocomercio int, 
-        fecha timestamp, 
-        monto decimal (7,2), 
-        pagado boolean
-    );
-    alter table compra_cliente  add constraint compra_cliente_pk  primary key (nrotarjeta);
-    for fila in select * from compra loop
-        for filas in select * from dato_cierre loop
-            insert into compra_cliente select dato_cierre.ntarjeta, compra.nrocomercio, fecha, monto, pagado from 
-            (select * from dato_cierre, compra) as compra_cliente 
-            where (dato_cierre.ntarjeta = compra.nrotarjeta AND ((
-                    cast(extract(month FROM fecha) as int) = numperiodo AND cast(extract(day FROM fecha) as int) <27) 
-                    OR (cast(extract(month FROM fecha) as int) = numperiodo + 1 AND cast(extract(day FROM fecha)>28 as int))));
-        end loop;
-    end loop;
-end;
-$$ language plpgsql;
-
---Guardando nombres de comercio y datos de la compra
-
-create or replace function guarda_comercios() returns 
-table (nrotarjeta char(16), nombre text, fecha timestamp, monto decimal(7,2)) as $$
-declare
-    nrotarjeta char(16);
-    nombre text; 
-    fecha timestamp; 
-    monto decimal(7,2);
-begin
-    create table compra_comercio (
-        nrotarjeta char(16),
-        nombre text, 
-        fecha timestamp, 
-        monto decimal(7,2)
-    );
-    alter table compra_comercio add constraint compra_comercio_pk  primary key (fecha);
-    insert into compra_comercio select nrotarjeta, nombre, fecha, monto from 
-            (select * from comercio, compra_cliente) as compra_comercio 
-            where ((comercio.nrocomercio = compra_cliente.nrocomercio) AND (NOT compra_cliente));
-end;
-$$ language plpgsql;
-
-
-
-----total de una tarjeta dada
-create or replace function total_tarjeta(nrotarjeta char(16)) returns decimal(8,2) as $$
-declare
-    fila record;
-    total decimal(8,2) :=0;
-begin
-    for fila in select * from compra_comercio loop
-        total := total + (select sum (monto) from compra_comercio where compra_comercio.nrotarjeta = nrotarjeta);
-    end loop;
-    return total;
-end;
-$$ language plpgsql;
-
-
---Genera resumen
-create or replace function genera_resumen(num_cliente int, periodo text) returns void as $$
-declare
-    num_periodo int := cast (periodo as int);
-    fila record;
-    filap record;
-    filad record;
-    filae record;
-    total decimal (8,2);
-    nresumen int;
-    i int :=1;
-    j int :=1;
-begin
-    select guarda_cliente(num_cliente);
-    select guarda_tarjeta(dato_cliente.nrocliente);
-    select guarda_datos_tarjeta();
-    select guarda_compras(num_periodo);
-    select guarda_comercios();
-
-    
- 
-    --Inserta los datos en la tabla cabecera y detalle 
-    for fila in select * from dato_cliente loop
-        for filad in select * from dato_cierre loop
-            insert into cabecera select dato_cliente.nombre, dato_cliente.apellido, dato_cliente.direccion,  
-                dato_cierre.nrotarjeta, dato_cierre.fechainicio, dato_cierre.fechacierre, 
-                dato_cierre.fechavto, total_tarjeta(dato_cierre.nrotarjeta)
-                from (select * from dato_cliente, dato_cierre) as cabecera where dato_cliente.nrocliente=dato_cierre.nrocliente; 
-            nresumen := (select nroresumen from cabecera where cabecera.nrotarjeta=dato_cliente.nrotarjeta);
-            for filap in select * from compras_comercio loop
-                    insert into detalle select nresumen, i, fecha, compra_comercio.fecha, compra_comercio.nombre, 
-                    compra_comercio.monto from compras_comercio where dato_cierre.nrotarjeta = compra_comercio.nrotarjeta;
-                    i := i+1;
-            end loop;
-        end loop;
-    end loop;
-    
-
-end;
-$$ language plpgsql;
 
 --funcion para comprobar si una tarjeta esta vencida recibe como parametro el campo validahasta
 create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
@@ -568,11 +414,16 @@ end;
 $$ language plpgsql;
 
 
+select llenar_cierre();
 
 select realizar_compras();
 
-select * from compra;
-select * from rechazo;
-select * from alerta;
+select * from compra where nrotarjeta = '4286283215095190';
 
-\c postgres
+select generar_resumen(1, 2021, 6);
+
+select * from cabecera;
+
+select * from detalle;
+
+
