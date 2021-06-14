@@ -69,7 +69,7 @@ create table cabecera(
 );
 
 create table detalle(
-    nroresumen  serial,
+    nroresumen  int,
     nrolinea    int,
     fecha   date,
     nombrecomercio text,
@@ -224,7 +224,7 @@ begin
 for i in i..n loop
     for j in j..m loop
         insert into cierre values(2021, j+1, i, fecha_inicio, fecha_cierre, fecha_vencimiento);
-        if (EXTRACT(ISOYEAR FROM fecha_vencimiento) = 2022) then
+        if (extract(year FROM fecha_vencimiento) = 2022) then
             fecha_inicio := fecha_inicio - cast('11 month' as interval);
             fecha_cierre := fecha_cierre - cast('11 month' as interval);
             fecha_vencimiento := fecha_vencimiento - cast('11 month' as interval);
@@ -359,24 +359,27 @@ declare
     dato_cierre record;
     total_a_pagar decimal(8,2);
     fila_compras record;
-    cont int := 1;
+    contador_linea int := 1;
+    periodo_cast int :=(select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int));
 begin
     select * into dato_cliente from cliente where nrocliente = nro_cliente;
    
     for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  --para cada tarjeta del cliente hacemos...
      
         select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int)) 
-        and mes = (select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int));--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
-                total_a_pagar:= (select sum(monto) from compra where nrotarjeta = tarjeta_cliente.nrotarjeta and dato_cierre.mes = (select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int))); --sumamos el total de compras para esa tarjeta 
+        and mes = periodo_cast;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
-                insert into cabecera values (1,dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
+                total_a_pagar:= (select sum(monto) from compra c where nrotarjeta = tarjeta_cliente.nrotarjeta ); --sumamos el total de compras para esa tarjeta 
+
+                insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
+                values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
                        dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
+                       
         for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta loop
-          insert into detalle (nroresumen, nrolinea, fecha, nombrecomercio, monto)
-             values (1, cont, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
-             cont := cont + 1;
+          insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta), contador_linea, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
+             contador_linea := contador_linea + 1;
         end loop;
-        cont := 1;
+        contador_linea := 1;
     end loop;
 end;
 $$ language plpgsql;
@@ -416,7 +419,7 @@ select realizar_compras();
 
 select * from compra where nrotarjeta = '4286283215095190';
 
-select generar_resumen(1,'202106');
+select generar_resumen(1,'202105');
 
 select * from cabecera;
 
