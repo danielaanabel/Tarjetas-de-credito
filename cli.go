@@ -34,7 +34,8 @@ func mostrar_opciones() {
 	fmt.Println("4- Crear funciones")
 	fmt.Println("5- Realizar compras")
 	fmt.Println("6- Generar resumen")
-	fmt.Println("7- Salir\n")
+	fmt.Println("7- Borrar pks")
+	fmt.Println("8- Salir\n")
 }
 
 //funcion que detecta la opción elegida a ejecutar---------------------------------------------------------
@@ -70,8 +71,14 @@ func ejecutar_opcion(opcion_elegida int) {
 	} else if opcion_elegida == 6 {
 
 		generar_resumen()
-
+		main()
+		
 	} else if opcion_elegida == 7 {
+		
+		borrar_pks()
+		main()	
+
+	} else if opcion_elegida == 8 {
 
 		fmt.Println("###### Fin ######")
 
@@ -644,6 +651,8 @@ func realizar_compras() {
 
 }
 
+//funcion para llamar a generar resumen---------------------------------------------------------------------
+
 func generar_resumen() {
 	
 	db := conectar_con_bdd()
@@ -655,4 +664,40 @@ func generar_resumen() {
 		log.Fatal(err)
 	}
 
+}
+
+
+//funcion para borrar pks-----------------------------------------------------------------------
+
+func borrar_pks(){
+	db := conectar_con_bdd()
+	defer db.Close()
+	
+	_, err := db.Exec(`--borrado fk
+alter table tarjeta drop constraint tarjeta_nrocliente_fk;
+alter table compra drop constraint compra_nrotarjeta_fk;
+alter table compra drop constraint compra_nrocomercio_fk;
+alter table rechazo drop constraint rechazo_nrotarjeta_fk;
+alter table rechazo drop constraint rechazo_nrocomercio_fk;
+alter table cabecera drop constraint cabecera_nrotarjeta_fk;
+alter table detalle drop constraint detalle_nroresumen_fk;
+alter table alerta drop constraint alerta_nrotarjeta_fk;
+alter table alerta drop constraint alerta_nrorechazo_fk;
+alter table consumo drop constraint consumo_nrotarjeta_fk;
+alter table consumo drop constraint consumo_nrocomercio_fk;
+--borrado pk
+alter table cliente drop constraint cliente_pk;
+alter table tarjeta drop constraint tarjeta_pk;
+alter table comercio drop constraint comercio_pk;
+alter table compra drop constraint compra_pk;
+alter table rechazo drop constraint rechazo_pk;
+alter table cierre drop constraint cierre_pk;
+alter table cabecera drop constraint cabecera_pk;
+alter table detalle drop constraint detalle_pk;
+alter table alerta drop constraint alerta_pk;`)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	
 }
