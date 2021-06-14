@@ -1,21 +1,21 @@
 = Universidad Nacional de General Sarmiento - Base de datos- Trabajo Práctico
 Trabajo Práctico
-:toc: left
+toc::[]
 :toc-title: Contenidos
 :numbered:
 
-* Integrantes
+- Integrantes
 
-Ferreyra Fernando
+    *Ferreyra Fernando
 
-Goñes Elías
+    *Goñes Elías
 
-Oviedo Daniela
+    *Oviedo Daniela
 
-Segretín Romina
+    *Segretín Romina
 
 
-==Introducción
+== Introducción
 
 
 En el presente informe nos proponemos explicar el proceso transcurrido para dar respuesta a una situación planteada en el marco de la materia
@@ -27,10 +27,10 @@ Desarrollaremos nuestra explicación en tres partes: _descripción de las tablas
 == Descripción del informe
 
 
-===Descripción de las tablas principales
+=== Descripción de las tablas principales
 
 
-====Tarjetas de crédito
+==== Tarjetas de crédito
 
 
 El sistema debe contar con un registro de compras realizadas con cada tarjeta. Cada tarjeta le pertenece a un cliente (a excepción de dos clientes que tendrán dos). Los clientes realizan compras en comercios a través de su tarjeta.
@@ -286,7 +286,7 @@ tablas expuestas. De esta manera, el código presentado muestra una mayor clarid
 === Jason y bases de datos NoSQL
 
 
-==Conclusión
+== Conclusión
 
 
 
