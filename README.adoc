@@ -1,5 +1,6 @@
-= Universidad Nacional de General Sarmiento - Base de datos- Trabajo Práctico
-Trabajo Práctico
+= Universidad Nacional de General Sarmiento - Base de datos: Trabajo Práctico
+Ferreyra Fernando <s@email>; Goñes Elías <s@email>; Oviedo Daniela <s@email>; Segretín Romina <s@email>
+v1, {docdate}. Docentes Hernán Czemerinski - Hernán Rondelli
 :toc: left
 :toc-title: Contenidos
 :numbered:
@@ -19,8 +20,9 @@ Trabajo Práctico
 
 
 En el presente informe nos proponemos explicar el proceso transcurrido para dar respuesta a una situación planteada en el marco de la materia
-_Bases de datos 1_. Contaremos los pasos realizados y dificultades en la realización de la base de datos que modeliza el almacenamiento
-de información relativa a tarjetas de crédito, en la creación del archivo CLI implementado en go y en la creación de otra base de datos BoltDB, también desde la aplicación CLI.
+_Bases de datos 1_. La situación planteada, consiste en modelar los datos usados para almacenar información de tarjetas de crédito. Luego, se usará este modelo en la implementación de dos aplicaciones CLI en Go. 
+Nos proponemos mostrar los pasos realizados y dificultades en la realización de la base de datos que modeliza el almacenamiento
+de información relativa a tarjetas de crédito, en la creación del archivo CLI implementado en Go y en la creación de otra base de datos BoltDB, también desde una aplicación CLI.
 Desarrollaremos nuestra explicación en tres partes: _descripción de las tablas principales_, _Stored Procedures y Triggers_, y _Jason y Bases de datos NOSQL_. Finalmente, concluiremos nuestro informe con una reflexión grupal comparando el uso de las bases de datos SQL y NOSQL.
 
 
@@ -95,69 +97,9 @@ de una interfaz de líneas de comandos.
 Recibe los datos de una posible compra (número de tarjeta, código de seguridad, número de comercio, 
 monto a pagar). La función retorna _true_ si se aprueba y _false_ si ocurre lo contrario.
 
-[source, postgres]
-----
-create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
-declare
-    fecha_actual timestamp := current_timestamp(0);
-    tarjeta record;
-    monto_total decimal:= p_monto;
-begin
-
-    if ((select count(*) from compra where nrotarjeta = nro_tarjeta ) > 0) then --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
-        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta); --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
-    end if;
-    
-    select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
-    if  not found then 
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
-        return false;
-    
-    elsif cod_seguridad != tarjeta.codseguridad then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
-        return false;
-    
-    elsif (monto_total > tarjeta.limitecompra) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
-        return false;
-    
-    elsif (select verificar_vigencia((tarjeta.validahasta))) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
-        return false;
-
-    elsif 'suspendida' = (tarjeta.estado) then
-        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
-        return false;
-
-    else
-        --se autoriza la compra
-        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, false);
-        return true;
-    end if;
-end;
-$$ language plpgsql;
-----
-
 Para autorizar una compra la función controla que se cumplan los siguientes requisitos: La tarjeta debe existir y debe estar 
 en vigencia. La compra no debe superar el límite de compra (para eso se le suma las anteriores compras). La terjeta
 no debe estar suspendida.
-
-Para ello, usa una función auxiliar llamada _verificar_vigencia_.
-
-[source, postgres]
-----
-create or replace function verificar_vigencia(fecha_vencimiento char(6)) returns boolean as $$
-declare
-     fecha_actual date :=to_date(to_char(current_date,'YYYYMM'),'YYYYMM'); --extrae el año y mes de la fecha actual en formato date
-     fecha_tarjeta date:=to_date(fecha_vencimiento, 'YYYYMM'); --extrae el año y mes de la fecha de vencimiento de la tarjeta en formato date
-begin
-     if (fecha_tarjeta <= fecha_actual) then --si la fecha es menor a la fecha actual esta vencida.
-        return true;
-     end if;
-return false;
-end;
-$$ language plpgsql;
-----
 
 ESta función, devuelve el booleano correspondiente a si la tarjeta es vigente o no.
 
@@ -169,99 +111,15 @@ Recibe los datos del cliente con su período del año y genera un resumen con to
 
 Esta función es ejecutada cuando se genera un rechazo al autorizar la compra. Se encarga de registrar el rechazo en una 
 tabla de alertas. Si un cliente tuvo dos rechazos por superar el límite de compra en un día, la función establece una
-suspensión de la tarjeta seguido de una alerta.
-
-[source, postgres]
-----
-create or replace function func_alerta_rechazo() returns trigger as $$
-declare
-    undia interval := '24:00:00';
-    i record;
-begin
-    insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-    values(new.nrotarjeta, new.fecha, new.nrorechazo, 0, 'se produjo un rechazo');
-
-    for i in select * from rechazo where nrotarjeta = new.nrotarjeta and motivo = 'supera limite de tarjeta' loop 
-        if (new.fecha - i.fecha) < undia then
-            update tarjeta set estado = 'suspendida' where nrotarjeta = new.nrotarjeta;
-            
-            insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-            values(new.nrotarjeta, new.fecha, new.nrorechazo, 32, 'supero el limite de compra mas una vez');
-        end if; 
-    end loop;   
-    return new;
-end;
-$$ language plpgsql;
-----
+suspensión de la tarjeta seguido de una alerta. Se implementa usando un trigger.
 
 Esta función es ejecutada por el trigger _rechazo_trig_:
-
-[source, postgres]
-----
-create trigger rechazo_trg
-after insert on rechazo
-for each row
-execute procedure func_alerta_rechazo();
-----
 
 * _func_alerta_compra_
 
 Esta función es ejecutada cuando se realiza una compra. Controla que no se realicen dos compras en un lapso menor a 1 minuto 
 es dentro del código postal y un lapso de 5 minutos de en fuera del código postal. En caso de que se cumpla, la función registra 
-la alerta._
-
-[source, postgres]
-----
-create function func_alerta_compra() returns trigger as $$
-declare
-    unminuto interval := '00:01:00';
-    cincominutos interval := '00:05:00';
-
-    i record;
-    j record;
-
-begin
-    if (select count(*) from compra where nrotarjeta = new.nrotarjeta) > 1 then
-            
-        for i in select * from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
-            (select nrocomercio from comercio where nrocomercio != new.nrocomercio and codigopostal = 
-             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
-
-            if (new.fecha - i.fecha) <= unminuto then
-            
-                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-                values(new.nrotarjeta, new.fecha, null, 1 ,'dos compras dentro del distrito en menos de un minuto'); 
-         
-            end if;
-        end loop;
-
-               
-        for j in select fecha from compra where nrotarjeta = new.nrotarjeta and nrocomercio in
-            (select nrocomercio from comercio where codigopostal != 
-             (select codigopostal from comercio where nrocomercio = new.nrocomercio)) loop
-
-            if (new.fecha - j.fecha) <= cincominutos then
-
-                insert into alerta (nrotarjeta,fecha ,nrorechazo, codalerta, descripcion) 
-                values(new.nrotarjeta, new.fecha, null, 5 ,'dos compras fuera del distrito en menos de 5 minutos');
-            
-            end if;
-        end loop;
-    end if;
-    return new;
-end;
-$$ language plpgsql;
-----
-
-Esta función es ejecutada por el trigger
-
-[source, postgres]
-----
-create trigger compra_trg
-after insert on compra
-for each row
-execute procedure func_alerta_compra();
-----
+la alerta._ Se implementa usando un tigger.
 
 ==== Problemas encontrados
 
@@ -278,9 +136,11 @@ verificando que el valor del campo _monto_ se encuentre vacío y entonces tiraba
 las compras previas mas el valor del nuevo monto, la solución fue controlar que existan compras previas para una determinada
  tarjeta antes de realizar la suma.
 
-* También se presentaron problemas al realizar la función _genera_resumen_. Al principio se realizaron funciones auxiliares con la finalidad
+* También se presentaron problemas al realizar la función _genera_resumen_. Al principio se buscó realizar un algoritmo que realice el producto cartesiano entre las tablas tarjeta, cierre, cliente, compra y comercio. 
+Filtrando luego, de acuerdo a las condiciones pedidas. Pero, no pudimos desarrollar el algoritmo que permita extraer la información obtenida de esta tabla 
+filtrada, para guardarla luego en las tablas cabecera y resumen. Luego, se realizaron funciones auxiliares con la finalidad
 de extraer la información necesaria para complatar las tablas _cabecera_ y _detalle_, guardándola en una tabla que luego usaríamos como auxiliar. 
-Luego, comprendimos que esta forma no era la más óptima y decidimos ir seleccionando la información a medida que se consultaban las 
+Finalmente, comprendimos que esta forma no era la más óptima y decidimos ir seleccionando la información a medida que se consultaban las 
 tablas expuestas. De esta manera, el código presentado muestra una mayor claridad y compacidad.  
 
 * Hubo un problema para recorrer la tabla consumos. Cuando se recorre cada fila de la tabla se llama a la función _autorizar_compra_.
@@ -293,6 +153,240 @@ no pide devolución de valor.
 Para guardar valores en los buckets primero creamos variables de tipo struct con las diferentes entidades y con sus respectivos
 atributos. Luego esos valores son pasados a formato JSON para que en el próximo paso sean guardados en buckets. En los buckets
 van el elemento JSON, el nombre del bucket y una clave para identificar.
+
+== Implementación
+
+[source, go]
+----
+//IMPLEMENTACIÓN DE CLI.GO
+
+----
+
+[source, go]
+----
+//IMPLEMENTACIÓN DE NOSQL.GO
+
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	bolt "github.com/coreos/bbolt"
+	"log"
+	"strconv"
+)
+
+type Cliente struct {
+	Nrocliente int
+	Nombre     string
+	Apellido   string
+	Domicilio  string
+	Telefono   string
+}
+
+type Tarjeta struct {
+	Nrotarjeta   string
+	Nrocliente   int
+	Validadesde  string
+	Validahasta  string
+	Codseguridad string
+	Limitecompra float64
+	Estado       string
+}
+
+type Comercio struct {
+	Nrocomercio  int
+	Nombre       string
+	Domicilio    string
+	Codigopostal string
+	Telefono     string
+}
+
+type Compra struct {
+	Nrooperacion int
+	Nrotarjeta   string
+	Nrocomercio  int
+	Fecha        string
+	Monto        float64
+	Pagado       bool
+}
+
+func CreateUpdate(dbb *bolt.DB, bucketName string, key []byte, val []byte) error {
+
+	tx, err := dbb.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	b, _ := tx.CreateBucketIfNotExists([]byte(bucketName))
+
+	err = b.Put(key, val)
+	if err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ReadUnique(dbb *bolt.DB, bucketName string, key []byte) ([]byte, error) {
+	var buf []byte
+
+	err := dbb.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		buf = b.Get(key)
+		return nil
+	})
+	return buf, err
+}
+
+func cargar_datos() {
+
+	dbb, err := bolt.Open("dbnosql.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer dbb.Close()
+
+	//Hago todos las variables structs
+
+	cliente1 := Cliente{1, "Jose Maria", "Perez", "Av. T de Alvear 1299", "541126598745"}
+	cliente2 := Cliente{2, "Roberto", "Rafaela", "Azcuenaga 548", "541146598787"}
+	cliente3 := Cliente{3, "Cecilia", "Suarez", "Salta 1210", "541126498789"}
+
+	comercio1 := Comercio{4, "Lo de Tito", "Vivaldi 339", "C1456NSM", "541178955412"}
+	comercio2 := Comercio{5, "Moncho", "Catamarca 138", "B1600KIB", "541185749688"}
+	comercio3 := Comercio{6, "Tecnico el Chapu", "Canal Beagle 1708", "B1610OIB", "541165754648"}
+
+	tarjeta1 := Tarjeta{"4286283215095190", 1, "201709", "202208", "114", 45000.00, "vigente"}
+	tarjeta2 := Tarjeta{"4532449515464319", 2, "202001", "202412", "881", 30000.00, "vigente"}
+	tarjeta3 := Tarjeta{"4716905901199213", 3, "202108", "202607", "311", 15000.00, "vigente"}
+
+	compra1 := Compra{7, "4286283215095190", 1, "2021-06-12", 293, true}
+	compra2 := Compra{8, "4532449515464319", 2, "2021-06-11", 1800, true}
+	compra3 := Compra{9, "4716905901199213", 3, "2021-06-13", 5500, true}
+
+	//Paso todo a JSON
+
+	datacl1, err := json.Marshal(cliente1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	datacl2, err := json.Marshal(cliente2)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	datacl3, err := json.Marshal(cliente3)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dataco1, err := json.Marshal(comercio1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dataco2, err := json.Marshal(comercio2)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dataco3, err := json.Marshal(comercio3)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	datata1, err := json.Marshal(tarjeta1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	datata2, err := json.Marshal(tarjeta2)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	datata3, err := json.Marshal(tarjeta3)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	datacpra1, err := json.Marshal(compra1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	datacpra2, err := json.Marshal(compra2)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	datacpra3, err := json.Marshal(compra3)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Creo los buckets
+
+	CreateUpdate(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)), datacl1)
+	CreateUpdate(dbb, "cliente2", []byte(strconv.Itoa(cliente2.Nrocliente)), datacl2)
+	CreateUpdate(dbb, "cliente3", []byte(strconv.Itoa(cliente3.Nrocliente)), datacl3)
+
+	CreateUpdate(dbb, "comercio1", []byte(strconv.Itoa(comercio1.Nrocomercio)), dataco1)
+	CreateUpdate(dbb, "comercio2", []byte(strconv.Itoa(comercio2.Nrocomercio)), dataco2)
+	CreateUpdate(dbb, "comercio3", []byte(strconv.Itoa(comercio3.Nrocomercio)), dataco3)
+
+	CreateUpdate(dbb, "tarjeta1", []byte(tarjeta1.Nrotarjeta), datata1)
+	CreateUpdate(dbb, "tarjeta2", []byte(tarjeta2.Nrotarjeta), datata2)
+	CreateUpdate(dbb, "tarjeta3", []byte(tarjeta3.Nrotarjeta), datata3)
+
+	CreateUpdate(dbb, "compra1", []byte(strconv.Itoa(compra1.Nrooperacion)), datacpra1)
+	CreateUpdate(dbb, "compra2", []byte(strconv.Itoa(compra2.Nrooperacion)), datacpra2)
+	CreateUpdate(dbb, "compra3", []byte(strconv.Itoa(compra3.Nrooperacion)), datacpra3)
+
+	//Leo los buckets
+
+	resultado1, err := ReadUnique(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)))
+	fmt.Printf("%s\n", resultado1)
+	resultado2, err := ReadUnique(dbb, "cliente2", []byte(strconv.Itoa(cliente2.Nrocliente)))
+	fmt.Printf("%s\n", resultado2)
+	resultado3, err := ReadUnique(dbb, "cliente3", []byte(strconv.Itoa(cliente3.Nrocliente)))
+	fmt.Printf("%s\n", resultado3)
+
+	resultado4, err := ReadUnique(dbb, "comercio1", []byte(strconv.Itoa(comercio1.Nrocomercio)))
+	fmt.Printf("%s\n", resultado4)
+	resultado5, err := ReadUnique(dbb, "comercio2", []byte(strconv.Itoa(comercio2.Nrocomercio)))
+	fmt.Printf("%s\n", resultado5)
+	resultado6, err := ReadUnique(dbb, "comercio3", []byte(strconv.Itoa(comercio3.Nrocomercio)))
+	fmt.Printf("%s\n", resultado6)
+
+	resultado7, err := ReadUnique(dbb, "tarjeta1", []byte(tarjeta1.Nrotarjeta))
+	fmt.Printf("%s\n", resultado7)
+
+}
+
+func main() {
+
+	var tecla_uno int
+
+	fmt.Println("\n-------------------------------\nPresiona el num 1 para cargar y leer los datos")
+
+	fmt.Scan(&tecla_uno)
+
+	if tecla_uno == 1 {
+		cargar_datos()
+
+	} else {
+		fmt.Println("Error, ingresa nuevamente")
+		main()
+	}
+}
+
+----
 
 
 == Conclusión
