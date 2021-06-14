@@ -192,6 +192,7 @@ insert into comercio values(19, 'Aberturas Pepe', '9 de Julio 3004', 'C1040JUG',
 insert into comercio values(20, 'Cinemark', 'Constituyentes 2078', 'B1620MVU', '541128969864');
 
 --consumos
+
 insert into consumo values('4716905901199213', '311', 10, 750.00);
 insert into consumo values('5305073210930499', '271', 6, 1500.00);
 insert into consumo values('5535292533476491', '876', 1, 3000.00);
@@ -424,9 +425,9 @@ select * from compra;
 select * from rechazo;
 select * from alerta;
 
-select * from compra where nrotarjeta = '4286283215095190';
+select * from compra where nrotarjeta = '5425758312840399';
 
-select generar_resumen(1, 2021, 6);
+select generar_resumen(18, 2021, 6);
 
 select * from cabecera;
 
