@@ -195,15 +195,14 @@ insert into comercio values(20, 'Cinemark', 'Constituyentes 2078', 'B1620MVU', '
 insert into consumo values('4716905901199213', '311', 10, 750.00);
 insert into consumo values('5305073210930499', '271', 6, 1500.00);
 insert into consumo values('5535292533476491', '876', 1, 3000.00);
-insert into consumo values('4916197097056062', '103', 11, 500.00);--anulada
 insert into consumo values('5425758312840399', '881', 15, 1000.00);
 insert into consumo values('4449942525596585', '552', 12, 2000.00);
-insert into consumo values('4286283215095190', '114', 14, 550.00);
+insert into consumo values('4916197097056062', '103', 11, 500.00);--anulada
 insert into consumo values('4449942525596585', '411', 2, 12000.00);--tarjeta mal codigo de seguridad
 insert into consumo values('4916558526474988', '633', 4, 3000.00);--tarjeta vencida 
 insert into consumo values('4929028998516745', '412', 5, 5000.00);--tarjeta suspendida
 insert into consumo values('4286283215095190', '114', 1, 1000.00);
-insert into consumo values('4286283215095190', '114', 1, 1000.00);--2 compras en menos de un minuto en comercios distintos mismo CP
+insert into consumo values('4286283215095190', '114', 2, 1000.00);--2 compras en menos de un minuto en comercios distintos mismo CP
 insert into consumo values('5425807573408337', '879', 20, 44000.00);--compra supera el limite de la tarjeta
 insert into consumo values('5425807573408337', '879', 20, 44000.00);--segunda vez rechazada por exceso del limite
 
@@ -420,6 +419,10 @@ $$ language plpgsql;
 select llenar_cierre();
 
 select realizar_compras();
+
+select * from compra;
+select * from rechazo;
+select * from alerta;
 
 select * from compra where nrotarjeta = '4286283215095190';
 
