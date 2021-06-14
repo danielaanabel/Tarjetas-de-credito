@@ -6,14 +6,55 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"encoding/json"
+	bolt "github.com/coreos/bbolt"
 	"log"
-
 	_ "github.com/lib/pq"
+	"strconv"
+	
 )
+
+
+		type Cliente struct {
+				Nrocliente int
+				Nombre string
+				Apellido string
+				Domicilio string
+				Telefono string
+		}
+		
+		type Tarjeta struct {
+				Nrotarjeta string
+				Nrocliente string
+				Validadesde string
+				Validahasta string
+				Limitecompra float64
+				Estado string
+		}
+		
+		type Comercio struct {
+				Nrocomercio int
+				Nombre string
+				Domicilio string
+				Codigopostal string
+				Telefono string
+		}
+		
+		type Compra struct {
+				Nrooperacion int
+				Nrotarjeta string
+				Nrocomercio int
+				Fecha string
+				Monto float64
+				Pagado bool
+		}
+		
+		
 
 //main----------------------------------------------------------------------------------------------------
 func main() {
 
+	
 	var opcion_elegida int //numero que elegira el usuario para ejecutar una opcion
 
 	mostrar_opciones()
@@ -43,31 +84,37 @@ func ejecutar_opcion(opcion_elegida int) {
 	if opcion_elegida == 1 {
 		crear_bdd()
 		conectar_con_bdd()
+		main()
 
 	} else if opcion_elegida == 2 {
 
 		crear_tablas()
+		main()
 		
 	} else if opcion_elegida == 3 {
 		
 		llenar_tablas()	
-
+		main()
+		
 	} else if opcion_elegida == 4 {
 
 		crear_todas_las_funciones()
-
+		main()
+		
 	} else if opcion_elegida == 5 {
 
 		realizar_compras()
+		escribir_en_bolt()
 
 	} else {
 			
-		fmt.Println("Error, ingresa nuevamente")	
+		fmt.Println("Error, ingresa nuevamente")
+		main()	
 			
 	}
 	
 
-	main() //llamo de vuelta al main para seguir con las opciones. corregir despues
+	 //llamo de vuelta al main para seguir con las opciones. corregir despues
 
 }
 
@@ -678,4 +725,65 @@ func realizar_compras(){
 	}
 	
 }
+
+//A partir de aca todo es sobre escritura y lectura en bolt---------------------------------------------------------
+
+
+func CreateUpdate(dbb *bolt.DB, bucketName string, key []byte, val []byte) error{
+	
+		tx, err := dbb.Begin(true)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		
+		b,_ := tx.CreateBucketIfNotExists([]byte(bucketName))
+		
+		err = b.Put(key, val)
+		if err != nil{
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+				return err
+			}
+		return nil	
+}
+
+
+func ReadUnique(dbb *bolt.DB, bucketName string, key []byte) ([]byte, error){
+		var buf []byte
+		
+		err := dbb.View(func(tx *bolt.Tx) error {
+				b := tx.Bucket([]byte(bucketName))
+				buf = b.Get(key)
+				return nil
+		})
+		fmt.Println("pase por aca")
+		return buf,err
+}
+
+
+func escribir_en_bolt(){
+		
+		dbb, err := bolt.Open("bolt.db", 0600, nil)
+		if err != nil {
+				log.Fatal(err)
+		}
+		defer dbb.Close()
+		
+		cliente1 := Cliente{10, "Elias", "Goñez", "Av. T de Alvear 1299", "541126598745"}
+		
+		data, err := json.Marshal(cliente1)
+		
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		CreateUpdate(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)),data)
+		
+		resultado, err := ReadUnique(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)))
+		fmt.Printf("%s\n",resultado)
+}		
+		
+
 
