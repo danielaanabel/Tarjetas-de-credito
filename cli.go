@@ -25,9 +25,10 @@ import (
 		
 		type Tarjeta struct {
 				Nrotarjeta string
-				Nrocliente string
+				Nrocliente int
 				Validadesde string
 				Validahasta string
+				Codseguridad string
 				Limitecompra float64
 				Estado string
 		}
@@ -74,12 +75,14 @@ func mostrar_opciones() {
 	fmt.Println("3- Ingresar datos a las tablas")
 	fmt.Println("4- Crear funciones")
 	fmt.Println("5- Realizar compras")
+	fmt.Println("6- Cargar datos a bolt.db")
+	fmt.Println("7- Salir\n")
 }
 
 //funcion que detecta la opción elegida a ejecutar---------------------------------------------------------
 func ejecutar_opcion(opcion_elegida int) {
 
-	fmt.Printf("La opcion elegida fue %v ", opcion_elegida) //linea solo de prueba para ver que funcione
+	fmt.Printf("La opcion elegida fue %v \n", opcion_elegida) //linea solo de prueba para ver que funcione
 
 	if opcion_elegida == 1 {
 		crear_bdd()
@@ -104,7 +107,15 @@ func ejecutar_opcion(opcion_elegida int) {
 	} else if opcion_elegida == 5 {
 
 		realizar_compras()
-		escribir_en_bolt()
+		main()
+		
+	} else if opcion_elegida == 6 {
+		
+		escribir_en_bolt()	
+		
+	} else if opcion_elegida == 7 {
+		
+		fmt.Println("###### Fin ######")	
 
 	} else {
 			
@@ -341,7 +352,7 @@ func crear_todas_las_funciones(){
 	crear_funcion_autorizar_compra()
 	crear_funcion_realizar_compras()
 	crear_verificar_vigencia()
-	crear_genera_resumen()
+	crear_generar_resumen()
 	crear_funcierre()
 	crear_func_alerta_rechazo()
 	crear_func_alerta_compra()
@@ -568,118 +579,40 @@ $$ language plpgsql;`)
 
 //Funcion genera_resumen que se guarda en la base de datos-----------------------------------------------------------------
 
-func crear_genera_resumen(){
+func crear_generar_resumen(){
 	
 	db := conectar_con_bdd()
 	
-	_, err := db.Exec(`create or replace function genera_resumen(num_cliente int, periodo char(8)) returns void as $$
+	_, err := db.Exec(`create or replace function generar_resumen(nro_cliente int, periodo char(6)) returns void as $$
 declare
     dato_cliente record;
-    tarjetacliente  record;
-    compra_cliente record;
+    tarjeta_cliente record;
     dato_cierre record;
-    compra_comercio record;
-    num_periodo int := cast (periodo as int);
-    fila record;
-    filap record;
-    filas record;
-    filat record;
-    filac record;
-    filaz record;
-    total decimal (8,2);
-    nresumen int;
-    i int :=1;
-    j int :=1;
+    total_a_pagar decimal(8,2);
+    fila_compras record;
+    contador_linea int := 1;
+    periodo_cast int :=(select cast((EXTRACT(MONTH FROM date(to_date(periodo, 'YYYYMM')))) as int));
 begin
+    select * into dato_cliente from cliente where nrocliente = nro_cliente;
+   
+    for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  --para cada tarjeta del cliente hacemos...
+        
+        select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int)) 
+        and mes = periodo_cast;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
-    --Se guardan datos del cliente 
-    for dato_cliente in select * from cliente loop
-        if (num_cliente = (select dato_cliente.nrocliente)) then
-            dato_cliente.nrocliente = nrocliente,
-            dato_cliente.nombre =nombre;
-            dato_cliente.apellido =apellido,
-            dato_cliente.domicilio =domicilio;
-            dato_cliente.telefono = telefono;
-        end if;
-    end loop;
+                total_a_pagar:= (select sum(monto) from compra c where nrotarjeta = tarjeta_cliente.nrotarjeta ); --sumamos el total de compras para esa tarjeta 
 
-    --Se guardan las tarjetas del cliente
-    for tarjetacliente in select * from tarjeta loop
-        if (num_cliente = (select nrocliente from tarjeta)) then
-        --if (num_cliente = tarjeta.nrocliente) then
-            tarjetacliente.nrotarjeta =nrotarjeta;
-            tarjetacliente.nrocliente =nrocliente;
-        end if;
-    end loop;
-
-    --Se guardan los datos de cada tarjeta 
-    for dato_cierre in select * from cierre loop
-        for fila in select * from tarjetacliente loop
-            if (terminacion = cast (substr(tarjetacliente.nrotarjeta,length(tarjetacliente.nrotarjeta),length(nombre_lugar)) as integer)) then
-                dato_cierre.nrotarjeta = tarjetacliente.nrotarjeta;
-                dato_cierre.año =año;
-                dato_cierre.mes =mes;
-                dato_cierre.terminacion =terminacion;
-                dato_cierre.fechainicio =fechainicio;
-                dato_cierre.fechacierre =fechacierre;
-                dato_cierre.fechavto =fechavto;
-            end if;
+                insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
+                values(dato_cliente.nombre, dato_cliente.apellido, dato_cliente.domicilio, tarjeta_cliente.nrotarjeta, 
+                       dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto, total_a_pagar);
+                       
+        for fila_compras in select * from compra where nrotarjeta = tarjeta_cliente.nrotarjeta loop
+          insert into detalle values((select nroresumen from cabecera where nrotarjeta = tarjeta_cliente.nrotarjeta),
+           contador_linea, fila_compras.fecha, (select nombre from comercio where nrocomercio = fila_compras.nrocomercio), fila_compras.monto);
+             contador_linea := contador_linea + 1;
         end loop;
+        contador_linea := 1;
     end loop;
-
-    --Se guardan las compras
-    for compra_cliente in select * from compra loop
-        for filas in select * from dato_cierre loop
-            if (dato_cierre.nrotarjeta = compra.nrotarjeta AND ( (
-                    extract(month FROM fecha)= num_periodo AND extract(day FROM fecha)<27) 
-                    OR (extract(month FROM fecha)= num_periodo + 1 AND extract(day FROM fecha)>28) )) then
-                compra_cliente.nrotarjeta =dato_cierre.nrotarjeta;
-                compra_cliente.nrocomercio =nrocomercio;
-                compra_cliente.fecha =fecha,
-                compra_cliente.monto =monto;
-                compra_cliente.pagado =pagado;
-        end if;
-        end loop;
-    end loop;
-
-    --SE guardan los nombres del comercio
-    for compra_comercio in select * from comercio loop
-        for filat in select * from compra_cliente loop
-            if ((comercio.nrocomercio = compra_cliente.nrocomercio) AND (NOT compra_cliente)) then
-                compra_comercio.nrotarjeta = compra_cliente.nrotarjeta;
-                compra_comercio.nombre =comercio.nombre;
-                compra_comercio.fecha =compra_cliente.fecha;
-                compra_comercio.monto =compra_cliente.monto;
-            end if;
-        end loop;
-    end loop;
-
-    for total in select compra_comercio.monto from compra_comercio loop
-        total := total + compra_comercio.monto;
-    end loop;
-
-    --Inserta los datos en la tabla cabecera y detalle
-    for filac in select * from dato_cliente loop
-        for filaz in select * from dato_cierre loop
-            insert into cabecera (nombre, apellido, domicilio, nrotarjeta, desde, hasta, vence, total)
-                values (dato_cliente.nombre, dato_cliente.apellido, dato_cliente.direccion,  
-                dato_cierre.nrotarjeta, dato_cierre.fechainicio, dato_cierre.fechacierre, dato_cierre.fechavto,
-                total
-                --select sum (compra_comercio.monto) from compra_comercio
-            );
-            nresumen := cabecera.nroresumen;
-            for filap in select * from compras_comercio loop
-                if (dato_cierre.nrotarjeta = compra_comercio.nrotarjeta) then
-                    insert into detalle values (nresumen, i, fecha, compra_comercio.fecha, compra_comercio.nombre, 
-                    compra_comercio.monto
-                    );
-                    i := i+1;
-                end if;
-            end loop;
-        end loop;
-    end loop;
-
-
 end;
 $$ language plpgsql;`)
 	
@@ -758,7 +691,6 @@ func ReadUnique(dbb *bolt.DB, bucketName string, key []byte) ([]byte, error){
 				buf = b.Get(key)
 				return nil
 		})
-		fmt.Println("pase por aca")
 		return buf,err
 }
 
@@ -771,18 +703,109 @@ func escribir_en_bolt(){
 		}
 		defer dbb.Close()
 		
-		cliente1 := Cliente{10, "Elias", "Goñez", "Av. T de Alvear 1299", "541126598745"}
 		
-		data, err := json.Marshal(cliente1)
+		//Hago todos las variables structs
 		
+		cliente1 := Cliente{1, "Jose Maria", "Perez", "Av. T de Alvear 1299", "541126598745"}
+		cliente2 := Cliente{2, "Roberto", "Rafaela", "Azcuenaga 548", "541146598787"}
+		cliente3 := Cliente{3, "Cecilia", "Suarez", "Salta 1210", "541126498789"}
+		
+		comercio1 := Comercio{1, "Lo de Tito", "Vivaldi 339", "C1456NSM", "541178955412"}
+		comercio2 := Comercio{2, "Moncho", "Catamarca 138", "B1600KIB", "541185749688"}
+		comercio3 := Comercio{3, "Tecnico el Chapu", "Canal Beagle 1708", "B1610OIB", "541165754648"}
+		
+		tarjeta1 := Tarjeta{"4286283215095190", 1, "201709", "202208", "114", 45000.00, "vigente"}
+		tarjeta2 := Tarjeta{"4532449515464319", 2, "202001", "202412", "881", 30000.00, "vigente"}
+		tarjeta3 := Tarjeta{"4716905901199213", 3, "202108", "202607", "311", 15000.00, "vigente"}
+
+		compra1 := Compra{1, "4286283215095190", 1, "2021-06-12", 293, true}
+		compra2 := Compra{2, "4532449515464319", 2, "2021-06-11", 1800, true}
+		compra3 := Compra{3, "4716905901199213", 3, "2021-06-13", 5500, true}
+		
+		//Paso todo a JSON
+		
+		datacl1, err := json.Marshal(cliente1)
 		if err != nil{
 				log.Fatal(err)
 		}
 		
-		CreateUpdate(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)),data)
+		datacl2, err := json.Marshal(cliente2)
+		if err != nil{
+				log.Fatal(err)
+		}
 		
-		resultado, err := ReadUnique(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)))
-		fmt.Printf("%s\n",resultado)
+		datacl3, err := json.Marshal(cliente3)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		dataco1, err := json.Marshal(comercio1)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		dataco2, err := json.Marshal(comercio2)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		dataco3, err := json.Marshal(comercio3)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		datata1, err := json.Marshal(tarjeta1)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		datata2, err := json.Marshal(tarjeta2)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		datata3, err := json.Marshal(tarjeta3)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		datacpra1, err := json.Marshal(compra1)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		datacpra2, err := json.Marshal(compra2)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		datacpra3, err := json.Marshal(compra3)
+		if err != nil{
+				log.Fatal(err)
+		}
+		
+		//Creo los buckets
+		
+		CreateUpdate(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)),datacl1)
+		CreateUpdate(dbb, "cliente2", []byte(strconv.Itoa(cliente2.Nrocliente)),datacl2)
+		CreateUpdate(dbb, "cliente3", []byte(strconv.Itoa(cliente3.Nrocliente)),datacl3)
+		
+		CreateUpdate(dbb, "comercio1", []byte(strconv.Itoa(comercio1.Nrocomercio)),dataco1)
+		CreateUpdate(dbb, "comercio2", []byte(strconv.Itoa(comercio2.Nrocomercio)),dataco2)
+		CreateUpdate(dbb, "comercio3", []byte(strconv.Itoa(comercio3.Nrocomercio)),dataco3)
+
+		CreateUpdate(dbb, "tarjeta1", []byte(tarjeta1.Nrotarjeta),datata1)
+		CreateUpdate(dbb, "tarjeta2", []byte(tarjeta2.Nrotarjeta),datata2)
+		CreateUpdate(dbb, "tarjeta3", []byte(tarjeta3.Nrotarjeta),datata3)
+
+		CreateUpdate(dbb, "compra1", []byte(strconv.Itoa(compra1.Nrooperacion)),datacpra1)
+		CreateUpdate(dbb, "compra2", []byte(strconv.Itoa(compra2.Nrooperacion)),datacpra2)
+		CreateUpdate(dbb, "compra3", []byte(strconv.Itoa(compra3.Nrooperacion)),datacpra3)
+		
+		
+		//para probar el read
+		//resultado, err := ReadUnique(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)))
+		//fmt.Printf("%s\n",resultado)
 }		
 		
 
