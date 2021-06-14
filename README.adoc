@@ -124,7 +124,7 @@ la alerta._ Se implementa usando un tigger.
 ==== Problemas encontrados
 
 * Un problema que se presentó fue que cuando se intentó hacer los triggers no se sabía cómo hacer para que recorra
- la tabla para tomar los valores de las fechas para comparar. En un principio se intentó hacer una clausura que dé las fechas 
+ la tabla para tomar los valores de las fechas para comparar. En un principio se intentó hacer una query que dé las fechas 
  que se pedía, pero no funcionó. Luego se optó por obtener todas las fechas de la tarjeta que se necesitaba en un record y 
  hacerle un for para obtener cada fecha y comparar.
 
