@@ -283,6 +283,11 @@ de extraer la información necesaria para complatar las tablas _cabecera_ y _det
 Luego, comprendimos que esta forma no era la más óptima y decidimos ir seleccionando la información a medida que se consultaban las 
 tablas expuestas. De esta manera, el código presentado muestra una mayor claridad y compacidad.  
 
+* Hubo un problema para recorrer la tabla consumos. Cuando se recorre cada fila de la tabla se llama a la función _autorizar_compra_.
+El problema estaba en la forma de llamar a la función (con un select). Esta forma de llamar obliga a retornar un valor, porque
+la función devuelve un booleano. Para solucionar eso se remplazó por _perform_ que cumple una función como _select_ pero
+no pide devolución de valor.
+
 === JSON y bases de datos NoSQL
 
 Para guardar valores en los buckets primero creamos variables de tipo struct con las diferentes entidades y con sus respectivos
