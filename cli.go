@@ -76,8 +76,6 @@ func ejecutar_opcion(opcion_elegida int) {
 
 	}
 
-	//llamo de vuelta al main para seguir con las opciones. corregir despues
-
 }
 
 //funcion para crear la base de datos----------------------------------------------------------------------
@@ -105,7 +103,7 @@ func crear_bdd() {
 //funcion para conectar con nuestra bdd --------------------------------------------------------
 
 func conectar_con_bdd() *sql.DB {
-	//conectanos con nuestra base de datos
+	
 	db, err := sql.Open("postgres", "user=postgres host=localhost dbname=basedatos sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
@@ -122,7 +120,7 @@ func conectar_con_bdd() *sql.DB {
 
 func crear_tablas() {
 
-	db := conectar_con_bdd() // conectamos a nuestra base de datos
+	db := conectar_con_bdd() 
 	defer db.Close()
 
 	_, err := db.Exec(`create table cliente(nrocliente int, nombre text, apellido text, domicilio text, telefono char(12));
@@ -150,8 +148,6 @@ create table consumo(nrotarjeta char(16), codseguridad char(4), nrocomercio int,
 	}
 
 	crear_pk_fk()
-
-	//hace falta aqui una funcion que cree las pk y fk
 
 	fmt.Printf("\n### Tablas creadas ###\n")
 }

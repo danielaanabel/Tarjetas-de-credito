@@ -285,14 +285,16 @@ tablas expuestas. De esta manera, el código presentado muestra una mayor clarid
 
 === JSON y bases de datos NoSQL
 
+Para guardar valores en los buckets primero creamos variables de tipo struct con las diferentes entidades y con sus respectivos
+atributos. Luego esos valores son pasados a formato JSON para que en el próximo paso sean guardados en buckets. En los buckets
+van el elemento JSON, el nombre del bucket y una clave para identificar.
+
+
+== Conclusión
+
 Una de las diferencias entre los modelos de datos SQL y NoSQL radica en la forma de hacer consultas. En NoSQL puede ser más complejo
 agrupar elementos porque no hay relación. La forma de hacer consultas es a través de la clave y el valor.
 
 Otra diferencia es la manera de crear la estructura de datos. Por un lado tenemos la base de datos SQL donde se crean tablas
 que pueden estar relacionadas con otras. Y por el otro lado, la base de datos NoSQL se modela con elementos clave/valor.
-
-
-== Conclusión
-
-
 
