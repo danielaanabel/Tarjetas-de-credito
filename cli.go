@@ -148,7 +148,7 @@ func crear_bdd() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	fmt.Printf("\n### Base de datos creada correctamente ###\n")
 }
 
 //funcion para conectar con nuestra bdd --------------------------------------------------------
@@ -159,7 +159,7 @@ func conectar_con_bdd() *sql.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("\n### Base de datos conectada correctamente ###\n")
+	
 	return db
 }
 
@@ -357,7 +357,7 @@ func crear_todas_las_funciones(){
 	crear_func_alerta_rechazo()
 	crear_func_alerta_compra()
 	
-	
+	fmt.Printf("\n### Funciones guardadas en la base de datos ###\n")
 }
 
 
@@ -450,7 +450,6 @@ if err != nil{
 		log.Fatal(err)
 }
 
-	fmt.Println("funcion creada")
 
 	
 }
@@ -656,6 +655,7 @@ func realizar_compras(){
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("\n### Compras realizadas ###\n")
 	
 }
 
@@ -802,7 +802,7 @@ func escribir_en_bolt(){
 		CreateUpdate(dbb, "compra2", []byte(strconv.Itoa(compra2.Nrooperacion)),datacpra2)
 		CreateUpdate(dbb, "compra3", []byte(strconv.Itoa(compra3.Nrooperacion)),datacpra3)
 		
-		
+		fmt.Printf("\n### Datos cargados a bolt.db ###\n")
 		//para probar el read
 		//resultado, err := ReadUnique(dbb, "cliente1", []byte(strconv.Itoa(cliente1.Nrocliente)))
 		//fmt.Printf("%s\n",resultado)
