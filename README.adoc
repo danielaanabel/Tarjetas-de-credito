@@ -1,18 +1,11 @@
 = Universidad Nacional de General Sarmiento - Base de datos
-
 Trabajo Práctico
+Ferreyra Fernando <email>; Goñes Elías <email>; Oviedo Daniela <email>; SEgretín Romina <romisegretin@gmail.com>
+v1, {docdate}
+
 :toc:
 :toc-title: Contenidos
 :numbered:
-
-== Integrantes
-
-* Ferreyra Fernando.
-* Goñez Elías.
-* Oviedo Daniela.
-* Segretin Romina.
-
-
 
 == Introducción
 
@@ -20,9 +13,6 @@ En el presente informe nos proponemos explicar el proceso transcurrido para dar 
 _Bases de datos 1_. Contaremos los pasos realizados y dificultades en la realización de la base de datos que modeliza el almacenamiento
 de información relativa a tarjetas de crédito, en la creación del archivo CLI implementado en go y en la creación de otra base de datos BoltDB, también desde la aplicación CLI.
 Desarrollaremos nuestra explicación en tres partes: _descripción de las tablas principales_, _Stored Procedures y Triggers_, y _Jason y Bases de datos NOSQL_. Finalmente, concluiremos nuestro informe con una reflexión grupal comparando el uso de las bases de datos SQL y NOSQL.
-El trabajo práctico solicita la creación de una base de datos para un sistema de tarjetas de crédito. 
-
-El sistema debe contar con un registro de compras realizadas con cada tarjeta. Cada tarjeta le pertenece a un cliente (a excepción de dos clientes que tendrán dos). Los clientes realizan compras en comercios a través de su tarjeta.
 
 == Descripción del informe
 
@@ -30,6 +20,7 @@ El sistema debe contar con un registro de compras realizadas con cada tarjeta. C
 
 ====Tarjetas de crédito
 
+El sistema debe contar con un registro de compras realizadas con cada tarjeta. Cada tarjeta le pertenece a un cliente (a excepción de dos clientes que tendrán dos). Los clientes realizan compras en comercios a través de su tarjeta.
 Las tarjetas de crédito son el medio para realizar una compra. Las tarjetas de crédito no tienen extensiones. 
 Los usuaries no tienen permitido financiar sus compras en cuotas, todo en un solo pago. Una tarjeta de crédito puede ser suspendida
 si recibe dos rechazos por límite de compra en un mismo día.
@@ -41,8 +32,6 @@ Además, las tarjetas presentan las siguientes características:
 * Código de seguridad.
 * Límite de compra.
 * Estado de la tarjeta ("vigente", "suspendida", "anulada").
-
-
 
 ==== Cliente
 
@@ -88,6 +77,49 @@ de una interfaz de líneas de comandos.
 
 Recibe los datos de una posible compra (número de tarjeta, código de seguridad, número de comercio, 
 monto a pagar). La función retorna _true_ si se aprueba y _false_ si ocurre lo contrario.
+
+[source, postgres]
+----
+create or replace function autorizar_compra(nro_tarjeta char(16), cod_seguridad char(4), nro_comercio int, p_monto decimal(8,2)) returns boolean as $$
+declare
+    fecha_actual timestamp := current_timestamp(0);
+    tarjeta record;
+    monto_total decimal:= p_monto;
+begin
+
+    if ((select count(*) from compra where nrotarjeta = nro_tarjeta ) > 0) then --verifico que exista alguna compra realizada por la tarjeta pasada como parametro
+        monto_total := monto_total + (select sum(monto) from compra where nrotarjeta = nro_tarjeta); --sumo el total de las compras realizas por esa tarjeta mas la nueva compra
+    end if;
+    
+    select * into tarjeta from tarjeta where nrotarjeta = nro_tarjeta;
+    if  not found then 
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'tarjeta no valida o no vigente');
+        return false;
+    
+    elsif cod_seguridad != tarjeta.codseguridad then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'codigo de seguridad invalido');
+        return false;
+    
+    elsif (monto_total > tarjeta.limitecompra) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'supera limite de tarjeta');
+        return false;
+    
+    elsif (select verificar_vigencia((tarjeta.validahasta))) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'plazo de vigencia expirado');
+        return false;
+
+    elsif 'suspendida' = (tarjeta.estado) then
+        insert into rechazo (nrotarjeta, nrocomercio, fecha, monto, motivo) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, 'la tarjeta se encuentra suspendida');
+        return false;
+
+    else
+        --se autoriza la compra
+        insert into compra (nrotarjeta, nrocomercio, fecha, monto, pagado) values(nro_tarjeta, nro_comercio, fecha_actual, p_monto, false);
+        return true;
+    end if;
+end;
+$$ language plpgsql;
+----
 
 Para autorizar una compra la función controla que se cumplan los siguientes requisitos: La tarjeta debe existir y debe estar 
 en vigencia. La compra no debe superar el límite de compra (para eso se le suma las anteriores compras). La terjeta
