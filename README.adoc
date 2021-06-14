@@ -1,4 +1,6 @@
-= Base de datos: Trabajo Práctico
+= Universidad Nacional de General Sarmiento - Base de datos
+
+Trabajo Práctico
 :toc:
 :toc-title: Contenidos
 :numbered:
@@ -14,11 +16,19 @@
 
 == Introducción
 
+En el presente informe nos proponemos explicar el proceso transcurrido para dar respuesta a una situación planteada en el marco de la materia
+_Bases de datos 1_. Contaremos los pasos realizados y dificultades en la realización de la base de datos que modeliza el almacenamiento
+de información relativa a tarjetas de crédito, en la creación del archivo CLI implementado en go y en la creación de otra base de datos BoltDB, también desde la aplicación CLI.
+Desarrollaremos nuestra explicación en tres partes: _descripción de las tablas principales_, _Stored Procedures y Triggers_, y _Jason y Bases de datos NOSQL_. Finalmente, concluiremos nuestro informe con una reflexión grupal comparando el uso de las bases de datos SQL y NOSQL.
 El trabajo práctico solicita la creación de una base de datos para un sistema de tarjetas de crédito. 
 
 El sistema debe contar con un registro de compras realizadas con cada tarjeta. Cada tarjeta le pertenece a un cliente (a excepción de dos clientes que tendrán dos). Los clientes realizan compras en comercios a través de su tarjeta.
 
-=== Tarjetas de crédito
+== Descripción del informe
+
+===Descripción de las tablas principales
+
+====Tarjetas de crédito
 
 Las tarjetas de crédito son el medio para realizar una compra. Las tarjetas de crédito no tienen extensiones. 
 Los usuaries no tienen permitido financiar sus compras en cuotas, todo en un solo pago. Una tarjeta de crédito puede ser suspendida
@@ -34,7 +44,7 @@ Además, las tarjetas presentan las siguientes características:
 
 
 
-=== Cliente
+==== Cliente
 
 Los clientes realizan compras con la tarjeta. Le cliente no puede tener más de una tarjeta.
 Un cliente es alertado por posibles fraudes tales como, realizar una compra en una lapso de tiempo muy bajo en diferentes
@@ -48,7 +58,7 @@ Un cliente tiene las siguientes características:
 * Domicilio.
 * Teléfono.
 
-=== Compra
+==== Compra
 
 La compra se encarga de guardar los datos que implican dicha acción. Los datos son:
 
@@ -63,13 +73,13 @@ Para finalizar la introducción, este documento tiene como objetivo presentar lo
 Éste contiene un resumen de las principales funciones realizadas en los distintos lenguajes de programación. 
 Además se muestran los problemas encontrados con sus respectivas soluciones.
 
-== Desarrollo
+=== Stored Procedures y triggers
 
 El sistema fue construido con los lenguajes _Go_ y _Pl/pgSQL_. El modelo de datos relativa a tarjetas de créditos son almacenadas en 
 la base de datos relacional _PostgreSQL_. Por último, en _BoltDB_ se guardan datos de clientes, comercios,
  tarjetas y compras para comparar el modelo relacional con un modelo no relacional (_NoSQL_).
 
-=== Funciones
+==== Funciones
 
 Las funciones creadas tienen como objetivo vincular al usuarie con la base de datos. La forma de interactuar es a través 
 de una interfaz de líneas de comandos.
@@ -101,7 +111,7 @@ la alerta._
 
 
 
-== Problemas encontrados
+==== Problemas encontrados
 
 * Un problema que se presentó fue que cuando se intentó hacer los triggers no se sabía cómo hacer para que recorra
  la tabla para tomar los valores de las fechas para comparar. En un principio se intentó hacer una clausura que dé las fechas 
@@ -116,7 +126,9 @@ verificando que el valor del campo _monto_ se encuentre vacío y entonces tiraba
 las compras previas mas el valor del nuevo monto, la solución fue controlar que existan compras previas para una determinada
  tarjeta antes de realizar la suma.
  
-== Comparación entre SQL y NoSQL
+=== Jason y bases de datos NoSQL
+
+==Conclusión
 
 
 
