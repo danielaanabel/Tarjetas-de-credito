@@ -365,7 +365,8 @@ begin
     select * into dato_cliente from cliente where nrocliente = nro_cliente;
    
     for tarjeta_cliente in select * from tarjeta where nrocliente = nro_cliente loop  --para cada tarjeta del cliente hacemos...
-     
+        
+        --obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
         select * into dato_cierre from cierre where terminacion = (cast(substr(tarjeta_cliente.nrotarjeta, length(tarjeta_cliente.nrotarjeta)) as int)) 
         and mes = periodo_cast;--obtener los datos de cierre para esa tarjeta de le cliente y para ese periodo  
 
