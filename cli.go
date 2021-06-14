@@ -32,7 +32,8 @@ func mostrar_opciones() {
 	fmt.Println("3- Ingresar datos a las tablas")
 	fmt.Println("4- Crear funciones")
 	fmt.Println("5- Realizar compras")
-	fmt.Println("6- Salir\n")
+	fmt.Println("6- Generar resumen")
+	fmt.Println("7- Salir\n")
 }
 
 //funcion que detecta la opción elegida a ejecutar---------------------------------------------------------
@@ -64,8 +65,12 @@ func ejecutar_opcion(opcion_elegida int) {
 
 		realizar_compras()
 		main()
-
+		
 	} else if opcion_elegida == 6 {
+		
+		generar_resumen()	
+
+	} else if opcion_elegida == 7 {
 
 		fmt.Println("###### Fin ######")
 
@@ -298,8 +303,8 @@ func crear_todas_las_funciones() {
 	crear_funcion_autorizar_compra()
 	crear_funcion_realizar_compras()
 	crear_verificar_vigencia()
-	crear_generar_resumen()
 	crear_llenar_cierre()
+	crear_generar_resumen()
 	crear_func_alerta_rechazo()
 	crear_func_alerta_compra()
 
@@ -629,5 +634,24 @@ func realizar_compras() {
 		log.Fatal(err)
 	}
 	fmt.Printf("\n### Compras realizadas ###\n")
+	
+	//Hago el cierre
+	_,err1 := db.Exec(`select llenar_cierre()`)
+	if err != nil {
+		log.Fatal(err1)
+	}
+
+}
+
+func generar_resumen(){
+	
+	db := conectar_con_bdd()
+	defer db.Close()
+	
+	_,err := db.Exec(`select generar_resumen(1,2021,3)`)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
