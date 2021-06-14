@@ -6,13 +6,10 @@ Trabajo Práctico
 
 - Integrantes
 
-    *Ferreyra Fernando
-
-    *Goñes Elías
-
-    *Oviedo Daniela
-
-    *Segretín Romina
+*Ferreyra Fernando
+*Goñes Elías
+*Oviedo Daniela
+*Segretín Romina
 
 
 == Introducción
