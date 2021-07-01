@@ -15,16 +15,15 @@
 
 
 En el presente informe nos proponemos explicar el proceso transcurrido para dar respuesta a una situación planteada en el marco de la materia
-_Bases de datos 1_. La situación planteada, consiste en modelar los datos usados para almacenar información de tarjetas de crédito. Luego, se usará este modelo en la implementación de dos aplicaciones CLI en Go. 
-Nos proponemos mostrar los pasos realizados y dificultades en la realización de la base de datos que modeliza el almacenamiento
-de información relativa a tarjetas de crédito, en la creación del archivo CLI implementado en Go y en la creación de otra base de datos BoltDB, también desde una aplicación CLI.
-Desarrollaremos nuestra explicación en tres partes: _descripción de las tablas principales_, _Stored Procedures y Triggers_, y _Jason y Bases de datos NOSQL_. Finalmente, concluiremos nuestro informe con una reflexión grupal comparando el uso de las bases de datos SQL y NOSQL.
+_Bases de datos 1_. La situación planteada, consiste en modelar los datos usados para almacenar información de tarjetas de crédito. Luego, se usará este modelo en la implementación de dos aplicaciones en Go. 
+Nos proponemos mostrar los pasos para la realización de la base de datos que modeliza el almacenamiento de información relativa a tarjetas de crédito, en la creación del archivo implementado en Go y en la creación de otra base de datos BoltDB, también desde una aplicación en GO.
+Desarrollaremos nuestra explicación en tres partes: _descripción de las tablas principales_, _Stored Procedures y Triggers_, y _Jason y Bases de datos NOSQL_.
 
 
-== Descripción del informe
+== Descripción
 
 
-=== Descripción de las tablas principales
+=== Tablas principales
 
 
 ==== Tarjetas de crédito
